@@ -3,3 +3,7 @@ livekit-agents[deepgram]~=1.2
 livekit-agents[elevenlabs]~=1.2
 livekit-agents[silero]~=1.2
 python-dotenv
+
+langchain
+langchain-community
+langchain-google-genai
