@@ -1,8 +1,6 @@
-import asyncio
 import logging
 from dotenv import load_dotenv
 
-from livekit import agents #if anyone here is learned python newly and want to remove this because its unusued please KYS.
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli
 from livekit.plugins import deepgram, google, elevenlabs, silero
 
@@ -13,6 +11,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
 
+
 class VoiceAssistant(Agent):
     def __init__(self):
         super().__init__(
@@ -22,11 +21,12 @@ class VoiceAssistant(Agent):
             )
         )
 
+
 async def entrypoint(ctx: JobContext):
     """Main entrypoint for the voice agent"""
     logger.info(f"Connecting to room {ctx.room.name}")
     await ctx.connect()
-    
+
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(
@@ -38,21 +38,19 @@ async def entrypoint(ctx: JobContext):
             temperature=0.8,
         ),
         tts=elevenlabs.TTS(
-            model="eleven_multilingual_v2",  
+            model="eleven_multilingual_v2",
             voice_id="EXAVITQu4vr4xnSDxMaL",
         ),
     )
-    
+
     # Start the session
-    await session.start(
-        agent=VoiceAssistant(),
-        room=ctx.room
-    )
-    
+    await session.start(agent=VoiceAssistant(), room=ctx.room)
+
     # Generate initial greeting
     await session.generate_reply(
         instructions="Greet the user and ask how you can help them today."
     )
+
 
 if __name__ == "__main__":
     cli.run_app(
