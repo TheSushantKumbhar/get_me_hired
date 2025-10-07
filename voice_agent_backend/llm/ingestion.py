@@ -7,6 +7,7 @@ all_docs = []
 headers_to_split = [("###", "question")]
 md_paths = glob("../llm/data/mrkdown/*.md")
 
+print("loading markdown files")
 for markdown_path in md_paths:
     lang_name = os.path.basename(markdown_path).lower().replace(".md", "")
 
@@ -29,13 +30,12 @@ for markdown_path in md_paths:
 
     # for testing delete later
     for doc in docs:
-        if doc.metadata["language"] == "javascript":
-            continue
         print("language: ", doc.metadata["language"])
         print("question: ", doc.page_content)
-        print("------------------------------------------------")
     # it works (hopefully)
 
     all_docs.append(docs)
 
 print(len(all_docs))
+# documents (markdown files) loaded
+print("markdown files loaded!")
