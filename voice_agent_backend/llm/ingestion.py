@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 from langchain_ollama import OllamaEmbeddings
-from langchain_core import embeddings
 from langchain_pinecone import PineconeVectorStore
 
 load_dotenv()
