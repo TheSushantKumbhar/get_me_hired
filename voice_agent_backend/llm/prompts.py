@@ -28,3 +28,14 @@ Your objectives:
 ### Instruction:
 Ask the next most relevant and natural interview question.
 """
+
+contextualize_q_system_prompt = """Given the interview chat history and the candidate's latest response, \
+    formulate a search query to find the most relevant follow-up interview questions from the knowledge base. \
+    
+    The query should consider:
+    - Topics mentioned in the candidate's answer
+    - The depth of their response (basic vs advanced)
+    - Natural progression of interview topics
+    
+    Generate a standalone search query that can retrieve appropriate next questions. \
+    DO NOT answer or evaluate the candidate's response - just create a search query."""
