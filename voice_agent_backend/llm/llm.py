@@ -22,6 +22,7 @@ LANGUAGE = "java"
 
 if __name__ == "__main__":
     embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
     vector_store = PineconeVectorStore(
         index_name=os.environ["INDEX_NAME"], embedding=embeddings
@@ -33,6 +34,8 @@ if __name__ == "__main__":
         }
     )
 
+    # adjusts user query based on conversation history
+    # if user say tell me about that, system understands what "that" is
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualize_q_system_prompt),
@@ -40,9 +43,6 @@ if __name__ == "__main__":
             ("human", "{input}"),
         ]
     )
-
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
-
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, contextualize_q_prompt
     )
@@ -60,6 +60,7 @@ if __name__ == "__main__":
         retriever=history_aware_retriever, combine_docs_chain=combine_docs_chain
     )
 
+    # we are storing conversations in a dic hehe goofy word for a map in my opinion
     store = {}
 
     def get_session_history(session_id: str):
@@ -75,6 +76,7 @@ if __name__ == "__main__":
         output_messages_key="answer",
     )
 
+    # each interview session getting different id for seperation purposes
     config = RunnableConfig(configurable={"session_id": "interview_001"})
 
     result = conversational_interview_chain.invoke(
