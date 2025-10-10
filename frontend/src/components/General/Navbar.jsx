@@ -1,3 +1,5 @@
+import LoginModal from "../Login/LoginModal";
+
 function Navbar() {
   return (
     <div className="navbar fixed bg-base-100 shadow-sm">
@@ -58,8 +60,8 @@ function Navbar() {
           </li>
         </ul>
       </div>
-      <div className="navbar-end">
-        <a className="btn font-work-sans">Login</a>
+      <div className="navbar-end font-work-sans">
+        <LoginModal />
       </div>
     </div>
   );
