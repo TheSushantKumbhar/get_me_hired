@@ -9,3 +9,6 @@ langchain-community
 langchain-google-genai
 langchain-pinecone
 langchain-ollama
+
+Flask
+Flask-Cors
