@@ -2,8 +2,11 @@ package main
 
 import (
 	"log"
+	"os"
 
+	"github.com/TheSushantKumbhar/get_me_hired/backend/controllers"
 	"github.com/TheSushantKumbhar/get_me_hired/backend/models"
+	"github.com/TheSushantKumbhar/get_me_hired/backend/repository"
 	"github.com/TheSushantKumbhar/get_me_hired/backend/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -21,9 +24,13 @@ func main() {
 		return c.SendString("Hello World!")
 	})
 
-	models.ConnectDatabase()
+	client := models.ConnectDatabase()
+	dbName := os.Getenv("MONGODB_NAME")
 
-	routes.SetupJobRoutes(app)
+	jobRepo := repository.NewJobRepository(client, dbName)
+	jobController := controllers.NewJobController(jobRepo)
+
+	routes.SetupJobRoutes(app, jobController)
 
 	err = app.Listen(":3000")
 	if err != nil {
