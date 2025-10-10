@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Header from '../components/Header';
-import TranscriptPanel from '../components/TranscriptPanel';
-import MessageBox from '../components/MessageBox';
-import VideoPanel from '../components/VideoPanel';
-import ParticipantIndicators from '../components/ParticipantIndicators';
-import InfoPanel from '../components/InfoPanel';
-import ControlButtons from '../components/ControlButtons';
+import Header from '../components/interviewRoomComp/Header';
+import TranscriptPanel from '../components/interviewRoomComp/TranscriptPanel';
+import MessageBox from '../components/interviewRoomComp/MessageBox';
+import VideoPanel from '../components/interviewRoomComp/VideoPanel';
+import ParticipantIndicators from '../components/interviewRoomComp/ParticipantIndicators';
+import InfoPanel from '../components/interviewRoomComp/InfoPanel';
+import ControlButtons from '../components/interviewRoomComp/ControlButtons';
 
 const InterviewRoom = () => {
   const [isConnected, setIsConnected] = useState(false);
