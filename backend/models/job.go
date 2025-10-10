@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // id
@@ -18,9 +19,10 @@ const jobCollectionName = "jobs"
 
 type Job struct {
 	ID          bson.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Title       string        `json:"title"`
-	Description string        `json:"description"`
-	Languages   []string      `json:"languages"`
+	CompanyName string        `json:"companyName" bson:"companyName"`
+	Title       string        `json:"title" bson:"title"`
+	Description string        `json:"description" bson:"description"`
+	Languages   []string      `json:"languages" bson:"languages"`
 }
 
 func InsertOneJob(job Job) error {
@@ -37,7 +39,7 @@ func InsertOneJob(job Job) error {
 }
 
 func InsertManyJobs(jobs []Job) error {
-	newJobs := make([]interface{}, len(jobs))
+	newJobs := make([]any, len(jobs))
 
 	collection := MongoClient.Database(os.Getenv("MONGODB_NAME")).Collection(jobCollectionName)
 
@@ -51,25 +53,33 @@ func InsertManyJobs(jobs []Job) error {
 	return nil
 }
 
-func UpdateJob(jobID string, newJob Job) error {
+func UpdateJob(jobID string, newJob Job) (Job, error) {
 	id, err := bson.ObjectIDFromHex(jobID)
 	if err != nil {
-		return err
+		log.Println("error parsing id: ", err)
+		return Job{}, err
 	}
 
 	filter := bson.M{"_id": id}
-	update := bson.M{"$set": bson.M{"title": newJob.Title, "description": newJob.Description, "languages": newJob.Languages}}
+	update := bson.M{"$set": bson.M{
+		"companyName": newJob.CompanyName,
+		"title":       newJob.Title,
+		"description": newJob.Description,
+		"languages":   newJob.Languages,
+	}}
 
 	collection := MongoClient.Database(os.Getenv("MONGODB_NAME")).Collection(jobCollectionName)
 
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
+	var updatedJob Job
+
+	returnOptions := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err = collection.FindOneAndUpdate(context.TODO(), filter, update, returnOptions).Decode(&updatedJob)
 	if err != nil {
-		return err
+		log.Println("error updating the job: ", err)
+		return Job{}, err
 	}
 
-	fmt.Println("updated record: ", result)
-
-	return nil
+	return updatedJob, nil
 }
 
 func DeleteJob(jobID string) error {
@@ -89,6 +99,25 @@ func DeleteJob(jobID string) error {
 	fmt.Println("delelted the following record: ", deleted)
 
 	return nil
+}
+
+func FindJobByID(jobID string) (Job, error) {
+	var result Job
+
+	id, err := bson.ObjectIDFromHex(jobID)
+	if err != nil {
+		return Job{}, err
+	}
+
+	filter := bson.M{"_id": id}
+
+	collection := MongoClient.Database(os.Getenv("MONGODB_NAME")).Collection(jobCollectionName)
+	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		return Job{}, err
+	}
+
+	return result, nil
 }
 
 func FindJobByTitle(jobTitle string) Job {

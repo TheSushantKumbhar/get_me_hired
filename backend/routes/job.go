@@ -9,5 +9,8 @@ import (
 func SetupJobRoutes(app *fiber.App) {
 	jobGroup := app.Group("/job")
 
+	jobGroup.Get("/:id", controllers.GetJob)
 	jobGroup.Post("/", controllers.CreateJob)
+	jobGroup.Put("/:id", controllers.UpdateJob)
+	jobGroup.Delete("/:id", controllers.DeleteJob)
 }
