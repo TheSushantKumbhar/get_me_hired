@@ -3,71 +3,80 @@ package controllers
 
 import (
 	"github.com/TheSushantKumbhar/get_me_hired/backend/models"
+	"github.com/TheSushantKumbhar/get_me_hired/backend/repository"
 	"github.com/gofiber/fiber/v2"
 )
 
-func CreateJob(c *fiber.Ctx) error {
+type JobController struct {
+	Repo *repository.JobRepository
+}
+
+func NewJobController(repo *repository.JobRepository) *JobController {
+	return &JobController{Repo: repo}
+}
+
+func (c *JobController) CreateJob(ctx *fiber.Ctx) error {
 	var job models.Job
 
-	if err := c.BodyParser(&job); err != nil {
+	if err := ctx.BodyParser(&job); err != nil {
 		errText := "invalid request body"
 		status := 400
-		return c.Status(status).JSON(fiber.Map{"error": errText})
+		return ctx.Status(status).JSON(fiber.Map{"error": errText})
 	}
 
-	err := models.InsertOneJob(job)
+	id, err := c.Repo.Insert(job)
 	if err != nil {
 		errText := "failed to insert job"
 		status := 500
-		return c.Status(status).JSON(fiber.Map{"error": errText})
+		return ctx.Status(status).JSON(fiber.Map{"error": errText})
 	}
 
-	return c.Status(200).JSON(fiber.Map{"message": "job created successfully"})
+	return ctx.Status(200).JSON(fiber.Map{"_id": id.Hex()})
 }
 
-func GetJob(c *fiber.Ctx) error {
-	jobID := c.Params("id")
+func (c *JobController) GetJob(ctx *fiber.Ctx) error {
+	jobID := ctx.Params("id")
 
-	job, err := models.FindJobByID(jobID)
+	job, err := c.Repo.FindByID(jobID)
 	if err != nil {
 		errText := "job not found"
 		status := 404
-		return c.Status(status).JSON(fiber.Map{"message": errText})
+		return ctx.Status(status).JSON(fiber.Map{"message": errText})
 	}
 
-	return c.JSON(job)
+	return ctx.JSON(job)
 }
 
-func UpdateJob(c *fiber.Ctx) error {
+func (c *JobController) UpdateJob(ctx *fiber.Ctx) error {
 	var job models.Job
-	jobID := c.Params("id")
+	jobID := ctx.Params("id")
 
-	if err := c.BodyParser(&job); err != nil {
+	if err := ctx.BodyParser(&job); err != nil {
 		errText := "error parsing job"
 		status := 400
-		return c.Status(status).JSON(fiber.Map{"message": errText})
+		return ctx.Status(status).JSON(fiber.Map{"message": errText})
 	}
 
 	// DOES NOT WORK FIX ASAP
-	newJob, err := models.UpdateJob(jobID, job)
+	newJob, err := c.Repo.Update(jobID, job)
 	if err != nil {
 		errText := "error updating the job"
 		status := 400
-		return c.Status(status).JSON(fiber.Map{"message": errText})
+		return ctx.Status(status).JSON(fiber.Map{"message": errText})
 	}
 
-	return c.JSON(newJob)
+	return ctx.JSON(newJob)
 }
 
-func DeleteJob(c *fiber.Ctx) error {
-	jobID := c.Params("id")
+func (c *JobController) DeleteJob(ctx *fiber.Ctx) error {
+	jobID := ctx.Params("id")
 
-	err := models.DeleteJob(jobID)
+	err := c.Repo.Delete(jobID)
 	if err != nil {
 		errText := "failed to delete job"
 		status := 400
-		return c.Status(status).JSON(fiber.Map{"message": errText})
+		return ctx.Status(status).JSON(fiber.Map{"message": errText})
 	}
 
-	return c.Status(200).JSON(fiber.Map{"message": "job deleted successfully"})
+	return ctx.Status(200).JSON(fiber.Map{"message": "job deleted successfully"})
 }
