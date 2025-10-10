@@ -6,11 +6,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupJobRoutes(app *fiber.App) {
+func SetupJobRoutes(app *fiber.App, controller *controllers.JobController) {
 	jobGroup := app.Group("/job")
 
-	jobGroup.Get("/:id", controllers.GetJob)
-	jobGroup.Post("/", controllers.CreateJob)
-	jobGroup.Put("/:id", controllers.UpdateJob)
-	jobGroup.Delete("/:id", controllers.DeleteJob)
+	jobGroup.Get("/:id", controller.GetJob)
+	jobGroup.Post("/", controller.CreateJob)
+	jobGroup.Put("/:id", controller.UpdateJob)
+	jobGroup.Delete("/:id", controller.DeleteJob)
 }
