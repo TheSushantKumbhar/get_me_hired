@@ -38,21 +38,6 @@ func InsertOneJob(job Job) error {
 	return err
 }
 
-func InsertManyJobs(jobs []Job) error {
-	newJobs := make([]any, len(jobs))
-
-	collection := MongoClient.Database(os.Getenv("MONGODB_NAME")).Collection(jobCollectionName)
-
-	result, err := collection.InsertMany(context.TODO(), newJobs)
-	if err != nil {
-		log.Println("error inserting..", err)
-		return err
-	}
-
-	fmt.Println("inserted all records: ", result)
-	return nil
-}
-
 func UpdateJob(jobID string, newJob Job) (Job, error) {
 	id, err := bson.ObjectIDFromHex(jobID)
 	if err != nil {
@@ -85,7 +70,7 @@ func UpdateJob(jobID string, newJob Job) (Job, error) {
 func DeleteJob(jobID string) error {
 	id, err := bson.ObjectIDFromHex(jobID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid job ID: %w", err)
 	}
 
 	filter := bson.M{"_id": id}
@@ -94,6 +79,10 @@ func DeleteJob(jobID string) error {
 	deleted, err := collection.DeleteOne(context.TODO(), filter)
 	if err != nil {
 		return err
+	}
+
+	if deleted.DeletedCount == 0 {
+		return fmt.Errorf("no job found with ID %s", jobID)
 	}
 
 	fmt.Println("delelted the following record: ", deleted)
@@ -120,7 +109,7 @@ func FindJobByID(jobID string) (Job, error) {
 	return result, nil
 }
 
-func FindJobByTitle(jobTitle string) Job {
+func FindJobByTitle(jobTitle string) (Job, error) {
 	var result Job
 
 	filter := bson.D{{Key: "title", Value: jobTitle}}
@@ -128,8 +117,8 @@ func FindJobByTitle(jobTitle string) Job {
 	collection := MongoClient.Database(os.Getenv("MONGODB_NAME")).Collection(jobCollectionName)
 	err := collection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		log.Fatalln("error finding Job: ", err)
+		return Job{}, err
 	}
 
-	return result
+	return result, nil
 }
