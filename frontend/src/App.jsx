@@ -1,10 +1,14 @@
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import InterviewRoom from "./pages/InterviewRoom.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+
+const router = createBrowserRouter([
+  { path: "/", element: <LandingPage /> },
+  { path: "/interview", element: <InterviewRoom /> },
+]);
+
 function App() {
-  return (
-    <>
-      <h1 className="text-4xl font-space-mono">Hello World</h1>
-      <button className="btn font-work-sans">click me~</button>
-    </>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
