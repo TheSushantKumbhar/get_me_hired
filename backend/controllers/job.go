@@ -31,7 +31,7 @@ func (c *JobController) CreateJob(ctx *fiber.Ctx) error {
 		return ctx.Status(status).JSON(fiber.Map{"error": errText})
 	}
 
-	return ctx.Status(200).JSON(fiber.Map{"_id": id.Hex()})
+	return ctx.Status(201).JSON(fiber.Map{"_id": id.Hex()})
 }
 
 func (c *JobController) GetJob(ctx *fiber.Ctx) error {

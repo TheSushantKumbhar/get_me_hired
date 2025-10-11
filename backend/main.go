@@ -22,9 +22,10 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:5173, http://localhost:5000",
-		AllowHeaders: "*",
-		AllowMethods: "*",
+		AllowOrigins:     "http://localhost:5173, http://localhost:5000",
+		AllowHeaders:     "*",
+		AllowMethods:     "*",
+		AllowCredentials: true,
 	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -37,7 +38,11 @@ func main() {
 	jobRepo := repository.NewJobRepository(client, dbName)
 	jobController := controllers.NewJobController(jobRepo)
 
+	userRepo := repository.NewUserRepository(client, dbName)
+	userController := controllers.NewUserController(userRepo)
+
 	routes.SetupJobRoutes(app, jobController)
+	routes.SetupAuthRoutes(app, userController)
 
 	err = app.Listen(":3000")
 	if err != nil {
