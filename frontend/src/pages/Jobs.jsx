@@ -1,15 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import JobCard from "../components/Jobs/JobCard";
 import { Search } from "lucide-react";
+import { getJobs } from "../api/api";
 
 function Jobs() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["jobs"],
     queryFn: getJobs,
   });
 
   if (isLoading)
     return <div className="pt-[5vh] text-6xl font-space-mono">Loading....</div>;
+
+  if (error)
+    return (
+      <div className="pt-[5vh] text-6xl font-space-mono text-warning">
+        {error}
+      </div>
+    );
 
   return (
     <div className="w-full h-full pt-[5vh] flex justify-center align-middle flex-wrap">
@@ -28,10 +36,5 @@ function Jobs() {
     </div>
   );
 }
-
-const getJobs = async () => {
-  const response = await fetch("http://localhost:3000/job");
-  return await response.json();
-};
 
 export default Jobs;
