@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "daisyui": "^5.1.27",
     "livekit-client": "^2.15.8",
     "lucide-react": "^0.545.0",
