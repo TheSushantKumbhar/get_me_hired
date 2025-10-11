@@ -11,6 +11,16 @@ function JobCard({ job }) {
       </figure>
       <div className="card-body">
         <h2 className="card-title">{job.title}</h2>
+        <div className="flex gap-1">
+          {job.languages.map((lang, i) => (
+            <div
+              className="badge badge-soft badge-neutral text-primary-content"
+              key={i}
+            >
+              {lang}
+            </div>
+          ))}
+        </div>
         <p>{job.description}</p>
         <div className="card-actions justify-end">
           <button className="btn btn-primary">Start Interview</button>
