@@ -33,6 +33,21 @@ func (r *JobRepository) Insert(job models.Job) (bson.ObjectID, error) {
 	return inserted.InsertedID.(bson.ObjectID), nil
 }
 
+func (r *JobRepository) FindAll() ([]models.Job, error) {
+	cursor, err := r.Collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	var results []models.Job
+	err = cursor.All(context.TODO(), &results)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func (r *JobRepository) FindByID(jobID string) (models.Job, error) {
 	var result models.Job
 

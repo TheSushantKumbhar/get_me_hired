@@ -47,6 +47,17 @@ func (c *JobController) GetJob(ctx *fiber.Ctx) error {
 	return ctx.JSON(job)
 }
 
+func (c *JobController) GetAllJobs(ctx *fiber.Ctx) error {
+	jobs, err := c.Repo.FindAll()
+	if err != nil {
+		errText := "could not fetch jobs"
+		status := 400
+		return ctx.Status(status).JSON(fiber.Map{"message": errText})
+	}
+
+	return ctx.JSON(jobs)
+}
+
 func (c *JobController) UpdateJob(ctx *fiber.Ctx) error {
 	var job models.Job
 	jobID := ctx.Params("id")
