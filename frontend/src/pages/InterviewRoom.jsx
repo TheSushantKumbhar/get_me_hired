@@ -15,7 +15,10 @@ const InterviewRoom = () => {
   const [transcript, setTranscript] = useState([]);
   const [roomId, setRoomId] = useState('');
   const [status, setStatus] = useState('Disconnected');
-  const [interviewName] = useState('Interview name');
+  const [interviewName] = useState('AI Interview Session');
+  const [hasVideo, setHasVideo] = useState(false);
+  const [currentMic, setCurrentMic] = useState('');
+  const [isAgentSpeaking, setIsAgentSpeaking] = useState(false); // Track agent speaking state
   const [participants, setParticipants] = useState([
     { id: 1, active: false },
     { id: 2, active: false },
@@ -26,14 +29,13 @@ const InterviewRoom = () => {
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const agentSpeakingTimeoutRef = useRef(null);
 
   // Connect to LiveKit Room
   const connectToRoom = async () => {
     try {
       setStatus('Connecting...');
 
-      // Step 1: Get token from backend
       const response = await fetch('http://localhost:5000/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,11 +50,8 @@ const InterviewRoom = () => {
       }
 
       const { token, url } = await response.json();
-
-      // Step 2: Import LiveKit
       const LiveKit = await import('livekit-client');
 
-      // Step 3: Create room
       const room = new LiveKit.Room({
         adaptiveStream: true,
         dynacast: true,
@@ -68,53 +67,168 @@ const InterviewRoom = () => {
         setIsConnected(true);
         setStatus('Connected');
         setRoomId(room.name);
-        addTranscript('System', 'Connected to interview room');
         updateParticipant(0, true);
+
+        // Register transcription handler for real-time subtitle-like transcripts
+        room.registerTextStreamHandler('lk.transcription', async (reader, participantInfo) => {
+          try {
+            const message = await reader.readAll();
+            const isTranscription = reader.info.attributes['lk.transcribed_track_id'] != null;
+            const isFinal = reader.info.attributes['lk.transcription_final'] === 'true';
+            const segmentId = reader.info.attributes['lk.segment_id'];
+
+            if (isTranscription && message.trim()) {
+              const speaker = participantInfo.identity.toLowerCase().includes('agent') ||
+                participantInfo.identity.toLowerCase().includes('ai') ||
+                participantInfo.identity.toLowerCase().includes('voice-assistant') ?
+                'Agent' : 'You';
+
+              if (speaker === 'Agent') {
+                // Agent is speaking - enable live subtitle effect
+                setIsAgentSpeaking(true);
+
+                // Clear any existing timeout
+                if (agentSpeakingTimeoutRef.current) {
+                  clearTimeout(agentSpeakingTimeoutRef.current);
+                }
+
+                // Set timeout to stop agent speaking indicator
+                agentSpeakingTimeoutRef.current = setTimeout(() => {
+                  setIsAgentSpeaking(false);
+                }, isFinal ? 1000 : 2000); // Longer timeout for interim
+              }
+
+              if (isFinal) {
+                // Final transcription - replace any interim
+                addFinalTranscript(speaker, message, segmentId);
+              } else {
+                // Interim transcription - show with streaming effect
+                addInterimTranscript(speaker, message, segmentId);
+              }
+            }
+          } catch (error) {
+            console.error('Error processing transcription:', error);
+          }
+        });
       });
 
       room.on(LiveKit.RoomEvent.Disconnected, () => {
         setIsConnected(false);
         setStatus('Disconnected');
-        addTranscript('System', 'Disconnected');
+        setIsAgentSpeaking(false);
         resetParticipants();
       });
 
       room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
-        addTranscript('System', `${participant.identity} joined`);
+        console.log(`${participant.identity} joined`);
         updateNextParticipant(true);
       });
 
       room.on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind === 'audio') {
           const audioElement = track.attach();
+          audioElement.volume = 1.0;
           document.body.appendChild(audioElement);
-          addTranscript('Agent', 'Speaking...');
+
+          // Detect when agent starts/stops speaking
+          if (participant.identity.toLowerCase().includes('agent')) {
+            // Monitor audio levels to detect when agent is actually speaking
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(new MediaStream([track.mediaStreamTrack]));
+            const analyser = audioContext.createAnalyser();
+            source.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            const checkAudioLevel = () => {
+              analyser.getByteFrequencyData(dataArray);
+              const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+              if (average > 10) { // Threshold for speech detection
+                setIsAgentSpeaking(true);
+              }
+
+              requestAnimationFrame(checkAudioLevel);
+            };
+
+            checkAudioLevel();
+          }
         }
-        if (track.kind === 'video' && videoRef.current) {
-          track.attach(videoRef.current);
-          videoRef.current.style.display = 'block';
+
+        if (track.kind === 'video') {
+          if (videoRef.current) {
+            track.attach(videoRef.current);
+            setHasVideo(true);
+          }
         }
       });
 
-      // Connect
+      room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track) => {
+        if (track.kind === 'video') {
+          track.detach();
+          setHasVideo(false);
+        }
+        if (track.kind === 'audio') {
+          track.detach();
+        }
+      });
+
+      // Connect to room
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(true);
-
       roomRef.current = room;
-      startSpeechRecognition();
 
     } catch (error) {
       console.error('Connection error:', error);
       setStatus('Error: ' + error.message);
-      addTranscript('System', `Error: ${error.message}`);
     }
+  };
+
+  // Add final transcript (replaces interim)
+  const addFinalTranscript = (speaker, text, segmentId) => {
+    if (!text || !text.trim()) return;
+
+    setTranscript(prev => {
+      // Remove any interim message with same segmentId
+      const filtered = prev.filter(msg => msg.segmentId !== segmentId);
+
+      return [...filtered, {
+        speaker,
+        text: text.trim(),
+        timestamp: new Date().toLocaleTimeString(),
+        isFinal: true,
+        segmentId
+      }];
+    });
+  };
+
+  // Add interim transcript (for streaming effect)
+  const addInterimTranscript = (speaker, text, segmentId) => {
+    if (!text || !text.trim()) return;
+
+    setTranscript(prev => {
+      // Remove any previous interim message with same segmentId
+      const filtered = prev.filter(msg => msg.segmentId !== segmentId);
+
+      return [...filtered, {
+        speaker,
+        text: text.trim(),
+        timestamp: new Date().toLocaleTimeString(),
+        isFinal: false,
+        segmentId,
+        isStreaming: speaker === 'Agent' // Enable streaming for agent
+      }];
+    });
   };
 
   const disconnectFromRoom = async () => {
     if (roomRef.current) {
       await roomRef.current.disconnect();
       roomRef.current = null;
-      stopSpeechRecognition();
+    }
+    setIsAgentSpeaking(false);
+    if (agentSpeakingTimeoutRef.current) {
+      clearTimeout(agentSpeakingTimeoutRef.current);
     }
   };
 
@@ -123,69 +237,86 @@ const InterviewRoom = () => {
       const newState = !isMuted;
       await roomRef.current.localParticipant.setMicrophoneEnabled(!newState);
       setIsMuted(newState);
-      addTranscript('System', newState ? 'Muted' : 'Unmuted');
     }
   };
+
+  const onMicChange = async (deviceId) => {
+  setCurrentMic(deviceId);
+  if (roomRef.current) {
+    // disable current mic
+    await roomRef.current.localParticipant.setMicrophoneEnabled(false);
+
+    // unpublish old track
+    const oldPublication = Array.from(
+      roomRef.current.localParticipant.audioTracks.values()
+    )[0];
+    if (oldPublication) {
+      await roomRef.current.localParticipant.unpublishTrack(oldPublication.track);
+    }
+
+    // get new MediaStream from selected device
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: deviceId || undefined }
+    });
+    const newTrack = newStream.getAudioTracks()[0];
+    // publish new track
+    await roomRef.current.localParticipant.publishTrack(newTrack);
+    // re-enable mic if not muted
+    await roomRef.current.localParticipant.setMicrophoneEnabled(!isMuted);
+  }
+};
 
   const toggleVideo = async () => {
     if (roomRef.current) {
       const newState = !isVideoOn;
       await roomRef.current.localParticipant.setCameraEnabled(newState);
       setIsVideoOn(newState);
+
+      if (newState && videoRef.current) {
+        const tracks = Array.from(roomRef.current.localParticipant.videoTracks.values());
+        if (tracks.length > 0) {
+          const videoTrack = tracks[0].videoTrack;
+          if (videoTrack) {
+            videoTrack.attach(videoRef.current);
+            setHasVideo(true);
+          }
+        }
+      } else {
+        setHasVideo(false);
+      }
     }
   };
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
-    addTranscript('System', isRecording ? 'Recording stopped' : 'Recording started');
   };
 
   const handleSendMessage = (message) => {
     if (roomRef.current && message.trim()) {
       const encoder = new TextEncoder();
-      const data = encoder.encode(JSON.stringify({ type: 'message', text: message }));
+      const data = encoder.encode(JSON.stringify({
+        type: 'chat_message',
+        text: message,
+        timestamp: Date.now()
+      }));
       roomRef.current.localParticipant.publishData(data, { reliable: true });
-      addTranscript('You', message);
+
+      // Add to transcript immediately
+      setTranscript(prev => [...prev, {
+        speaker: 'You',
+        text: message.trim(),
+        timestamp: new Date().toLocaleTimeString(),
+        isFinal: true
+      }]);
     }
-  };
-
-  const startSpeechRecognition = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.continuous = true;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript;
-        addTranscript('You', transcript);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-    }
-  };
-
-  const stopSpeechRecognition = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-  };
-
-  const addTranscript = (speaker, text) => {
-    setTranscript(prev => [...prev, {
-      speaker,
-      text,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
   };
 
   const updateParticipant = (index, active) => {
     setParticipants(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], active };
+      if (updated[index]) {
+        updated[index] = { ...updated[index], active };
+      }
       return updated;
     });
   };
@@ -205,6 +336,18 @@ const InterviewRoom = () => {
     setParticipants(prev => prev.map(p => ({ ...p, active: false })));
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+      }
+      if (agentSpeakingTimeoutRef.current) {
+        clearTimeout(agentSpeakingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="h-screen bg-black text-white flex flex-col">
       <Header
@@ -219,13 +362,16 @@ const InterviewRoom = () => {
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
         {/* Left Panel */}
         <div className="flex-1 flex flex-col gap-4">
-          <TranscriptPanel transcript={transcript} />
+          <TranscriptPanel
+            transcript={transcript}
+            isAgentSpeaking={isAgentSpeaking}
+          />
           <MessageBox onSendMessage={handleSendMessage} disabled={!isConnected} />
         </div>
 
         {/* Right Panel */}
         <div className="w-96 flex flex-col gap-4">
-          <VideoPanel isConnected={isConnected} videoRef={videoRef} />
+          <VideoPanel isConnected={isConnected} videoRef={videoRef} hasVideo={hasVideo} />
           <ParticipantIndicators participants={participants} />
           <InfoPanel roomId={roomId} status={status} />
           <ControlButtons
@@ -234,6 +380,8 @@ const InterviewRoom = () => {
             onMuteToggle={toggleMute}
             onVideoToggle={toggleVideo}
             disabled={!isConnected}
+            onMicChange={onMicChange}         
+            currentMicId={currentMic}       
           />
         </div>
       </div>

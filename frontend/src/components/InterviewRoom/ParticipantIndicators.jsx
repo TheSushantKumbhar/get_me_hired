@@ -2,7 +2,7 @@ import React from 'react';
 
 const ParticipantIndicators = ({ participants }) => {
   return (
-    <div className="border-2 border-gray-700 rounded-lg bg-black p-4">
+    <div className="border-2 border-gray-700 rounded-lg bg-base-200 p-4">
       <div className="flex justify-center gap-4">
         {participants.map((participant) => (
           <div
