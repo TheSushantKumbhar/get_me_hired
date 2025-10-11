@@ -5,7 +5,7 @@ function Layout() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="w-dvw pt-[5vh]">
         <Outlet />
       </main>
     </>

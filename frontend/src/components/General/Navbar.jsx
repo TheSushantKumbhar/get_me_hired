@@ -1,6 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import LoginModal from "../Login/LoginModal";
+import ThemeController from "./ThemeController";
 
 function Navbar() {
+  const navigate = useNavigate();
+
   return (
     <div className="navbar fixed bg-base-100 shadow-sm">
       <div className="navbar-start">
@@ -45,12 +49,17 @@ function Navbar() {
             </li>
           </ul>
         </div>
-        <a className="btn btn-ghost text-xl font-space-mono">Get-Me-Hired</a>
+        <a
+          className="btn btn-ghost text-xl font-space-mono"
+          onClick={() => navigate("/")}
+        >
+          Get-Me-Hired
+        </a>
       </div>
       <div className="navbar-center hidden lg:flex">
         <ul className="menu menu-horizontal px-1 font-work-sans">
           <li>
-            <a>Jobs</a>
+            <a onClick={() => navigate("/job")}>Jobs</a>
           </li>
           <li>
             <a>Experiences</a>
@@ -62,6 +71,7 @@ function Navbar() {
       </div>
       <div className="navbar-end font-work-sans">
         <LoginModal />
+        <ThemeController />
       </div>
     </div>
   );
