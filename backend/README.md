@@ -3,7 +3,12 @@
 ### bellow are the isntructions on how to start the server
 
 1. install go lang
-2. pull the changes
+2. pull the code
+
+```bash
+git clone "https://github.com/TheSushantKumbhar/get_me_hired.git"
+```
+
 3. change directory to backend
 
 ```bash
