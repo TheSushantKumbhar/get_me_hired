@@ -2,9 +2,12 @@ import { useNavigate } from "react-router-dom";
 import LoginModal from "../Login/LoginModal";
 import ThemeController from "./ThemeController";
 import { Home } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Navbar() {
   const navigate = useNavigate();
+
+  const { user, logout } = useAuth();
 
   return (
     <div className="navbar fixed bg-base-100 shadow-sm z-2">
@@ -72,7 +75,13 @@ function Navbar() {
         </ul>
       </div>
       <div className="navbar-end font-work-sans">
-        <LoginModal />
+        {user ? (
+          <button className="btn btn-secondary" onClick={logout}>
+            Logout
+          </button>
+        ) : (
+          <LoginModal />
+        )}
         <ThemeController />
       </div>
     </div>

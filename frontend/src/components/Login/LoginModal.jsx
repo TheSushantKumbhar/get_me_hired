@@ -1,6 +1,9 @@
+import { Link, useNavigate } from "react-router-dom";
 import LoginForm from "./LoginForm";
 
 function LoginModal() {
+  const navigate = useNavigate();
+
   return (
     <>
       {/* Open the modal using document.getElementById('ID').showModal() method */}
@@ -16,6 +19,14 @@ function LoginModal() {
         </form>
         <div className="modal-box">
           <LoginForm />
+          <form method="dialog">
+            <button
+              className="cursor-pointer hover:underline"
+              onClick={() => navigate("/register")}
+            >
+              Not registered? click here.
+            </button>
+          </form>
         </div>
       </dialog>
     </>

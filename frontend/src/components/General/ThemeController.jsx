@@ -10,7 +10,7 @@ function ThemeController() {
       <input
         type="checkbox"
         className="theme-controller"
-        value={darkTheme === true ? "acid" : "business"}
+        value={darkTheme === true ? "acid" : "abyss"}
         onClick={toggleTheme}
       />
 
