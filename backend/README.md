@@ -9,6 +9,8 @@
 git clone "https://github.com/TheSushantKumbhar/get_me_hired.git"
 ```
 
+DONT DO THIS IF YOU ALREADY HAVE THE PROJECT ON YOUR SYSTEM
+
 3. change directory to backend
 
 ```bash
