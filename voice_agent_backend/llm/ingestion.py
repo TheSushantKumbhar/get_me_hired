@@ -9,10 +9,12 @@ from langchain_pinecone import PineconeVectorStore
 load_dotenv()
 
 all_docs = []
-headers_to_split = [("###", "question")]
-md_paths = glob("../llm/data/mrkdown/*.md")
+headers_to_split = [("##", "question")]
+md_paths = glob("../llm/data/mrkdown/PYTHON.md")
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+
+BATCH_SIZE = 69
 
 print("loading markdown files")
 for markdown_path in md_paths:
@@ -20,7 +22,6 @@ for markdown_path in md_paths:
 
     loader = TextLoader(markdown_path, encoding="utf-8")
     data = loader.load()
-
     markdown_content = data[0].page_content
 
     splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split)
@@ -28,28 +29,24 @@ for markdown_path in md_paths:
 
     for i, doc in enumerate(docs):
         doc.metadata["language"] = lang_name
+        doc.metadata["source"] = markdown_path  # optional
 
+        # Move question + answer to page_content
         question = doc.metadata.pop("question", None)
         answer = doc.page_content
+        doc.page_content = f"Q: {question}\nA: {answer}"
 
-        doc.page_content = question
-        doc.metadata["answer"] = answer
+    all_docs.extend(docs)
 
-    # for testing delete later
-    # for doc in docs:
-    # print("language: ", doc.metadata["language"])
-    # print("question: ", doc.page_content)
-    # it works (hopefully)
-
-    all_docs.append(docs)
-
-# documents (markdown files) loaded
+# batch ingestion
 print("markdown files loaded!")
-all_docs = [doc for sublist in all_docs for doc in sublist]
-print(len(all_docs))
+print(f"Total docs: {len(all_docs)}")
 
-print("ingesting....")
-PineconeVectorStore.from_documents(
-    all_docs, embeddings, index_name=os.environ["INDEX_NAME"]
-)
-print("finished ingesting the documents....")
+for i in range(0, len(all_docs), BATCH_SIZE):
+    batch = all_docs[i : i + BATCH_SIZE]
+    print(f"Ingesting batch {i} to {i + len(batch)}...")
+    PineconeVectorStore.from_documents(
+        batch, embeddings, index_name=os.environ["INDEX_NAME"]
+    )
+
+print("finished ingesting all documents!")

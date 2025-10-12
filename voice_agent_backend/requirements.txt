@@ -9,6 +9,7 @@ langchain-community
 langchain-google-genai
 langchain-pinecone
 langchain-ollama
+pinecone
 
 Flask
 Flask-Cors
