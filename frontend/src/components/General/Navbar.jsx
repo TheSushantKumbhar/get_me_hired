@@ -3,9 +3,11 @@ import LoginModal from "../Login/LoginModal";
 import ThemeController from "./ThemeController";
 import { Home } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 function Navbar() {
   const navigate = useNavigate();
+  const darkTheme = useTheme();
 
   const { user, logout, loading } = useAuth();
 
@@ -93,8 +95,15 @@ function Navbar() {
               tabIndex="-1"
               className="menu menu-sm dropdown-content bg-base-300 rounded-box z-1 mt-3 w-52 p-2 shadow"
             >
+              <span className="text-center m-1 font-space-mono font-semibold text-lg text-secondary">
+                {user.username}
+              </span>
               <li>
-                <button className="btn btn-soft btn-sm m-1">Profile</button>
+                <button
+                  className={`btn btn-neutral btn-sm m-1 ${darkTheme && "btn-soft"}`}
+                >
+                  Profile
+                </button>
               </li>
               <li>
                 <button
