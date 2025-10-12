@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import React, { useState, useRef, useEffect } from "react";
 import Header from "../components/InterviewRoom/Header";
 import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
@@ -6,6 +7,17 @@ import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ParticipantIndicators from "../components/InterviewRoom/ParticipantIndicators";
 import InfoPanel from "../components/InterviewRoom/InfoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
+=======
+import React, { useState, useRef, useEffect } from 'react';
+import Header from '../components/InterviewRoom/Header';
+import TranscriptPanel from '../components/InterviewRoom/TranscriptPanel';
+import MessageBox from '../components/InterviewRoom/MessageBox';
+import VideoPanel from '../components/InterviewRoom/VideoPanel';
+import ParticipantIndicators from '../components/InterviewRoom/ParticipantIndicators';
+import InfoPanel from '../components/InterviewRoom/InfoPanel';
+import ControlButtons from '../components/InterviewRoom/ControlButtons';
+import SplineAnimation from '../components/InterviewRoom/SplineAnimation';
+>>>>>>> Stashed changes
 
 const InterviewRoom = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -40,9 +52,16 @@ const InterviewRoom = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+<<<<<<< Updated upstream
           room: "interview-room",
           participant: "User-" + Math.random().toString(36).substr(2, 9),
         }),
+=======
+          room: 'interview-room',
+
+          participant: 'User-' + Math.random().toString(36).substr(2, 9)
+        })
+>>>>>>> Stashed changes
       });
 
       if (!response.ok) {
@@ -272,17 +291,28 @@ const InterviewRoom = () => {
 
       // unpublish old track
       const oldPublication = Array.from(
+<<<<<<< Updated upstream
         roomRef.current.localParticipant.audioTracks.values(),
       )[0];
       if (oldPublication) {
         await roomRef.current.localParticipant.unpublishTrack(
           oldPublication.track,
         );
+=======
+        roomRef.current.localParticipant.audioTracks.values()
+      )[0];
+      if (oldPublication) {
+        await roomRef.current.localParticipant.unpublishTrack(oldPublication.track);
+>>>>>>> Stashed changes
       }
 
       // get new MediaStream from selected device
       const newStream = await navigator.mediaDevices.getUserMedia({
+<<<<<<< Updated upstream
         audio: { deviceId: deviceId || undefined },
+=======
+        audio: { deviceId: deviceId || undefined }
+>>>>>>> Stashed changes
       });
       const newTrack = newStream.getAudioTracks()[0];
       // publish new track
@@ -382,6 +412,49 @@ const InterviewRoom = () => {
   }, []);
 
   return (
+    // <div className="h-screen bg-black text-white flex flex-col">
+    //   <Header
+    //     interviewName={interviewName}
+    //     isRecording={isRecording}
+    //     onRecordToggle={toggleRecording}
+    //     isConnected={isConnected}
+    //     onDisconnect={disconnectFromRoom}
+    //     onConnect={connectToRoom}
+    //   />
+
+    //   <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+    //     {/* Left Panel */}
+    //     <div className="flex-1 flex flex-col gap-4">
+    //       <TranscriptPanel
+    //         transcript={transcript}
+    //         isAgentSpeaking={isAgentSpeaking}
+    //       />
+    //       <MessageBox onSendMessage={handleSendMessage} disabled={!isConnected} />
+    //     </div>
+
+    //     {/* Right Panel */}
+    //     <div className="w-96 flex flex-col gap-4">
+    //       {/* <VideoPanel isConnected={isConnected} videoRef={videoRef} hasVideo={hasVideo} /> */}
+    //       <div className="w-full h-screen flex items-center justify-center bg-black">
+    //         <div className="w-[600px] h-[400px]">
+    //           <SplineAnimation />
+    //         </div>
+    //       </div>
+    //       <ParticipantIndicators participants={participants} />
+    //       <InfoPanel roomId={roomId} status={status} />
+    //       <ControlButtons
+    //         isMuted={isMuted}
+    //         isVideoOn={isVideoOn}
+    //         onMuteToggle={toggleMute}
+    //         onVideoToggle={toggleVideo}
+    //         disabled={!isConnected}
+    //         onMicChange={onMicChange}
+    //         currentMicId={currentMic}
+    //       />
+    //     </div>
+    //   </div>
+    // </div>
+
     <div className="h-screen bg-black text-white flex flex-col">
       <Header
         interviewName={interviewName}
@@ -394,7 +467,7 @@ const InterviewRoom = () => {
 
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
         {/* Left Panel */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
           <TranscriptPanel
             transcript={transcript}
             isAgentSpeaking={isAgentSpeaking}
@@ -406,12 +479,22 @@ const InterviewRoom = () => {
         </div>
 
         {/* Right Panel */}
+<<<<<<< Updated upstream
         <div className="w-96 flex flex-col gap-4">
           <VideoPanel
             isConnected={isConnected}
             videoRef={videoRef}
             hasVideo={hasVideo}
           />
+=======
+        <div className="w-96 flex flex-col gap-4 overflow-y-auto">
+          <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
+            <div className="w-[400px] h-[400px] mx-auto">
+              <SplineAnimation />
+            </div>
+          </div>
+
+>>>>>>> Stashed changes
           <ParticipantIndicators participants={participants} />
           <InfoPanel roomId={roomId} status={status} />
           <ControlButtons
@@ -424,8 +507,10 @@ const InterviewRoom = () => {
             currentMicId={currentMic}
           />
         </div>
+
       </div>
     </div>
+
   );
 };
 
