@@ -1,6 +1,9 @@
 import { Info } from "lucide-react";
+import { useTheme } from "../../contexts/ThemeContext";
 
 function JobCard({ job }) {
+  const darkTheme = useTheme();
+
   return (
     <div className="card bg-base-200 w-[30%] m-4 shadow-sm font-work-sans">
       <figure>
@@ -14,7 +17,7 @@ function JobCard({ job }) {
         <div className="flex gap-1">
           {job.languages.map((lang, i) => (
             <div
-              className="badge badge-soft badge-neutral text-primary-content"
+              className={`badge badge-soft ${!darkTheme ? "text-accent" : "text-primary-content"}`}
               key={i}
             >
               {lang}

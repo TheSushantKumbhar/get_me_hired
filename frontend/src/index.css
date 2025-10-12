@@ -3,7 +3,8 @@
 @plugin "daisyui" {
   themes:
     acid,
-    abyss --default;
+    abyss,
+    dracula --default;
 }
 
 @theme {

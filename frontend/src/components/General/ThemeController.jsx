@@ -1,3 +1,4 @@
+import { DARK_THEME, LIGHT_THEME } from "../../constants";
 import { useTheme, useToggleTheme } from "../../contexts/ThemeContext";
 
 function ThemeController() {
@@ -10,7 +11,7 @@ function ThemeController() {
       <input
         type="checkbox"
         className="theme-controller"
-        value={darkTheme === true ? "acid" : "abyss"}
+        value={darkTheme === true ? LIGHT_THEME : DARK_THEME}
         onClick={toggleTheme}
       />
 
