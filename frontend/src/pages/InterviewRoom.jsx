@@ -17,10 +17,6 @@ import ParticipantIndicators from '../components/InterviewRoom/ParticipantIndica
 import InfoPanel from '../components/InterviewRoom/InfoPanel';
 import ControlButtons from '../components/InterviewRoom/ControlButtons';
 import SplineAnimation from '../components/InterviewRoom/SplineAnimation';
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 const InterviewRoom = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -294,38 +290,15 @@ const InterviewRoom = () => {
 
       // unpublish old track
       const oldPublication = Array.from(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        roomRef.current.localParticipant.audioTracks.values(),
-      )[0];
-      if (oldPublication) {
-        await roomRef.current.localParticipant.unpublishTrack(
-          oldPublication.track,
-        );
-=======
-=======
->>>>>>> Stashed changes
         roomRef.current.localParticipant.audioTracks.values()
       )[0];
       if (oldPublication) {
         await roomRef.current.localParticipant.unpublishTrack(oldPublication.track);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
       }
 
       // get new MediaStream from selected device
       const newStream = await navigator.mediaDevices.getUserMedia({
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        audio: { deviceId: deviceId || undefined },
-=======
         audio: { deviceId: deviceId || undefined }
->>>>>>> Stashed changes
-=======
-        audio: { deviceId: deviceId || undefined }
->>>>>>> Stashed changes
       });
       const newTrack = newStream.getAudioTracks()[0];
       // publish new track
@@ -492,17 +465,6 @@ const InterviewRoom = () => {
         </div>
 
         {/* Right Panel */}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        <div className="w-96 flex flex-col gap-4">
-          <VideoPanel
-            isConnected={isConnected}
-            videoRef={videoRef}
-            hasVideo={hasVideo}
-          />
-=======
-=======
->>>>>>> Stashed changes
         <div className="w-96 flex flex-col gap-4 overflow-y-auto">
           <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
             <div className="w-[400px] h-[400px] mx-auto">
@@ -510,10 +472,6 @@ const InterviewRoom = () => {
             </div>
           </div>
 
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
           <ParticipantIndicators participants={participants} />
           <InfoPanel roomId={roomId} status={status} />
           <ControlButtons
