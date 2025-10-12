@@ -40,7 +40,11 @@ function LoginForm() {
           placeholder="your password..."
         />
         <form>
-          <button className="btn btn-neutral w-full" onClick={(e) => submit(e)}>
+          <button
+            className="btn btn-neutral w-full"
+            disabled={loading}
+            onClick={(e) => submit(e)}
+          >
             {loading ? (
               <span className="loading loading-spinner"></span>
             ) : (

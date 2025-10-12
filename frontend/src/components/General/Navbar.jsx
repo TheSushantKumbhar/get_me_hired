@@ -7,7 +7,7 @@ import { useAuth } from "../../contexts/AuthContext";
 function Navbar() {
   const navigate = useNavigate();
 
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
 
   return (
     <div className="navbar fixed bg-base-100 shadow-sm z-2">
@@ -76,9 +76,41 @@ function Navbar() {
       </div>
       <div className="navbar-end font-work-sans">
         {user ? (
-          <button className="btn btn-secondary" onClick={logout}>
-            Logout
-          </button>
+          <div className="dropdown dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className="btn btn-ghost btn-circle avatar"
+            >
+              <div className="w-10 rounded-full">
+                <img
+                  alt={user.username[0].toUpperCase()}
+                  src="https://avatar.iran.liara.run/public"
+                />
+              </div>
+            </div>
+            <ul
+              tabIndex="-1"
+              className="menu menu-sm dropdown-content bg-base-300 rounded-box z-1 mt-3 w-52 p-2 shadow"
+            >
+              <li>
+                <button className="btn btn-soft btn-sm m-1">Profile</button>
+              </li>
+              <li>
+                <button
+                  className="btn btn-warning btn-soft btn-sm m-1"
+                  onClick={logout}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    "Logout"
+                  )}
+                </button>
+              </li>
+            </ul>
+          </div>
         ) : (
           <LoginModal />
         )}

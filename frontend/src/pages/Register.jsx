@@ -62,7 +62,11 @@ function Register() {
             setPassword(e.target.value);
           }}
         />
-        <button className="btn btn-neutral w-full mt-2" onClick={submit}>
+        <button
+          disabled={loading}
+          className="btn btn-neutral w-full mt-2"
+          onClick={submit}
+        >
           {loading ? (
             <span className="loading loading-spinner"></span>
           ) : (
