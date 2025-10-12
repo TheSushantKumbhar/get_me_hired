@@ -1,13 +1,3 @@
-<<<<<<< Updated upstream
-import React, { useState, useRef, useEffect } from "react";
-import Header from "../components/InterviewRoom/Header";
-import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
-import MessageBox from "../components/InterviewRoom/MessageBox";
-import VideoPanel from "../components/InterviewRoom/VideoPanel";
-import ParticipantIndicators from "../components/InterviewRoom/ParticipantIndicators";
-import InfoPanel from "../components/InterviewRoom/InfoPanel";
-import ControlButtons from "../components/InterviewRoom/ControlButtons";
-=======
 import React, { useState, useRef, useEffect } from 'react';
 import Header from '../components/InterviewRoom/Header';
 import TranscriptPanel from '../components/InterviewRoom/TranscriptPanel';
@@ -51,16 +41,12 @@ const InterviewRoom = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-<<<<<<< Updated upstream
-          room: "interview-room",
-          participant: "User-" + Math.random().toString(36).substr(2, 9),
-        }),
-=======
+
           room: 'interview-room',
 
           participant: 'User-' + Math.random().toString(36).substr(2, 9)
         })
->>>>>>> Stashed changes
+
       });
 
       if (!response.ok) {
