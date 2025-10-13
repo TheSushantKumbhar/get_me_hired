@@ -1,11 +1,25 @@
 import logging
 from dotenv import load_dotenv
-from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, RoomOutputOptions
-from livekit.plugins import deepgram, google, elevenlabs, silero
+from livekit.agents import (
+    Agent,
+    AgentSession,
+    JobContext,
+    WorkerOptions,
+    cli,
+    RoomOutputOptions,
+)
+from livekit.plugins import (
+    deepgram,
+    elevenlabs,
+    silero,
+    langchain as lk_langchain,
+)
+from llm.livekit_llm import create_workflow
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
+
 
 class VoiceAssistant(Agent):
     def __init__(self):
@@ -17,35 +31,29 @@ class VoiceAssistant(Agent):
             )
         )
 
+
 async def entrypoint(ctx: JobContext):
     logger.info(f"Starting AI Interview Agent in room: {ctx.room.name}")
     await ctx.connect()
 
     session = AgentSession(
-        
         vad=silero.VAD.load(
-            min_speech_duration=0.3,     
-            min_silence_duration=0.8,     
-            padding_duration=0.2,        
-            activation_threshold=0.6,    
+            min_speech_duration=0.3,
+            min_silence_duration=0.8,
+            padding_duration=0.2,
+            activation_threshold=0.6,
         ),
-        
         stt=deepgram.STT(
             model="nova-2",
             language="en-US",
             interim_results=True,
         ),
-        
-        llm=google.LLM(
-            model="gemini-2.0-flash-exp",
-            temperature=0.7,
+        llm=lk_langchain.LLMAdapter(graph=create_workflow()),
+        tts=deepgram.TTS(
+            model="aura-asteria-en",
+            encoding="linear16",
+            sample_rate=24000,
         ),
-        
-        tts=elevenlabs.TTS(
-            model="eleven_multilingual_v2",
-            voice_id="EXAVITQu4vr4xnSDxMaL",
-        ),
-        
         use_tts_aligned_transcript=True,
     )
 
@@ -55,7 +63,7 @@ async def entrypoint(ctx: JobContext):
         room_output_options=RoomOutputOptions(
             transcription_enabled=True,
             sync_transcription=True,
-        )
+        ),
     )
 
     await session.generate_reply(
@@ -63,6 +71,7 @@ async def entrypoint(ctx: JobContext):
     )
 
     logger.info("AI Interview Agent started successfully")
+
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
