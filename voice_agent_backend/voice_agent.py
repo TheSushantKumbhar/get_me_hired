@@ -46,7 +46,7 @@ async def entrypoint(ctx: JobContext):
         ),
         stt=deepgram.STT(
             model="nova-2",
-            language="en-US",
+            language="en-IN",
             interim_results=True,
         ),
         llm=lk_langchain.LLMAdapter(
