@@ -1,10 +1,10 @@
 // InterviewRoom.jsx
-import React, { useState, useRef, useEffect } from 'react';
-import Header from '../components/InterviewRoom/Header';
-import TranscriptPanel from '../components/InterviewRoom/TranscriptPanel';
-import VideoPanel from '../components/InterviewRoom/VideoPanel';
-import ControlButtons from '../components/InterviewRoom/ControlButtons';
-import SplineAnimation from '../components/InterviewRoom/SplineAnimation';
+import React, { useState, useRef, useEffect } from "react";
+import Header from "../components/InterviewRoom/Header";
+import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
+import VideoPanel from "../components/InterviewRoom/VideoPanel";
+import ControlButtons from "../components/InterviewRoom/ControlButtons";
+import SplineAnimation from "../components/InterviewRoom/SplineAnimation";
 
 const InterviewRoom = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -33,27 +33,27 @@ const InterviewRoom = () => {
       agentSpeakingTimeoutRef.current = null;
     }
 
-    animationFrameIdsRef.current.forEach(id => {
+    animationFrameIdsRef.current.forEach((id) => {
       try {
         cancelAnimationFrame(id);
       } catch (e) {
-        console.error('Error canceling animation frame:', e);
+        console.error("Error canceling animation frame:", e);
       }
     });
     animationFrameIdsRef.current = [];
 
-    audioContextsRef.current.forEach(context => {
+    audioContextsRef.current.forEach((context) => {
       try {
-        if (context.state !== 'closed') {
+        if (context.state !== "closed") {
           context.close();
         }
       } catch (e) {
-        console.error('Error closing audio context:', e);
+        console.error("Error closing audio context:", e);
       }
     });
     audioContextsRef.current = [];
 
-    audioElementsRef.current.forEach(element => {
+    audioElementsRef.current.forEach((element) => {
       try {
         element.pause();
         element.srcObject = null;
@@ -61,7 +61,7 @@ const InterviewRoom = () => {
           element.parentNode.removeChild(element);
         }
       } catch (e) {
-        console.error('Error removing audio element:', e);
+        console.error("Error removing audio element:", e);
       }
     });
     audioElementsRef.current = [];
@@ -117,15 +117,15 @@ const InterviewRoom = () => {
       isConnectingRef.current = true;
       setStatus("Connecting...");
 
-      const uniqueRoomName = 'interview-room-' + Date.now();
+      const uniqueRoomName = "interview-room-" + Date.now();
 
       const response = await fetch("http://localhost:5000/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room: uniqueRoomName,
-          participant: 'User-' + Math.random().toString(36).substr(2, 9)
-        })
+          participant: "User-" + Math.random().toString(36).substr(2, 9),
+        }),
       });
 
       if (!response.ok) {
@@ -182,8 +182,10 @@ const InterviewRoom = () => {
               if (isTranscription && message.trim()) {
                 const speaker =
                   participantInfo.identity.toLowerCase().includes("agent") ||
-                    participantInfo.identity.toLowerCase().includes("ai") ||
-                    participantInfo.identity.toLowerCase().includes("voice-assistant")
+                  participantInfo.identity.toLowerCase().includes("ai") ||
+                  participantInfo.identity
+                    .toLowerCase()
+                    .includes("voice-assistant")
                     ? "Agent"
                     : "You";
 
@@ -198,7 +200,7 @@ const InterviewRoom = () => {
                     () => {
                       setIsAgentSpeaking(false);
                     },
-                    isFinal ? 1000 : 2000
+                    isFinal ? 1000 : 2000,
                   );
                 }
 
@@ -211,7 +213,7 @@ const InterviewRoom = () => {
             } catch (error) {
               console.error("Error processing transcription:", error);
             }
-          }
+          },
         );
       });
 
@@ -240,11 +242,12 @@ const InterviewRoom = () => {
 
             if (participant.identity.toLowerCase().includes("agent")) {
               try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const audioContext = new (window.AudioContext ||
+                  window.webkitAudioContext)();
                 audioContextsRef.current.push(audioContext);
 
                 const source = audioContext.createMediaStreamSource(
-                  new MediaStream([track.mediaStreamTrack])
+                  new MediaStream([track.mediaStreamTrack]),
                 );
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -253,10 +256,11 @@ const InterviewRoom = () => {
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
                 const checkAudioLevel = () => {
-                  if (audioContext.state === 'closed') return;
+                  if (audioContext.state === "closed") return;
 
                   analyser.getByteFrequencyData(dataArray);
-                  const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                  const average =
+                    dataArray.reduce((a, b) => a + b) / dataArray.length;
 
                   if (average > 10) {
                     setIsAgentSpeaking(true);
@@ -270,7 +274,7 @@ const InterviewRoom = () => {
 
                 checkAudioLevel();
               } catch (error) {
-                console.error('Error setting up audio analysis:', error);
+                console.error("Error setting up audio analysis:", error);
               }
             }
           }
@@ -278,7 +282,7 @@ const InterviewRoom = () => {
           if (track.kind === "video") {
             attachVideoTrack(track);
           }
-        }
+        },
       );
 
       room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track) => {
@@ -293,7 +297,6 @@ const InterviewRoom = () => {
 
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(true);
-
     } catch (error) {
       console.error("Connection error:", error);
       setStatus("Error: " + error.message);
@@ -323,7 +326,7 @@ const InterviewRoom = () => {
       setTranscript([]);
       isConnectingRef.current = false;
     } catch (error) {
-      console.error('Error during disconnect:', error);
+      console.error("Error during disconnect:", error);
       roomRef.current = null;
       isConnectingRef.current = false;
     }
@@ -349,16 +352,16 @@ const InterviewRoom = () => {
         await roomRef.current.localParticipant.setMicrophoneEnabled(false);
       }
 
-      await roomRef.current.switchActiveDevice('audioinput', deviceId);
+      await roomRef.current.switchActiveDevice("audioinput", deviceId);
       setCurrentMicId(deviceId);
 
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       if (!wasMuted) {
         await roomRef.current.localParticipant.setMicrophoneEnabled(true);
       }
     } catch (error) {
-      console.error('Error switching microphone:', error);
+      console.error("Error switching microphone:", error);
       if (!isMuted) {
         await roomRef.current?.localParticipant.setMicrophoneEnabled(true);
       }
@@ -371,11 +374,12 @@ const InterviewRoom = () => {
     }
 
     const newState = !isVideoOn;
-    
+
     try {
       if (newState) {
-        const publication = await roomRef.current.localParticipant.setCameraEnabled(true);
-        
+        const publication =
+          await roomRef.current.localParticipant.setCameraEnabled(true);
+
         if (publication && publication.track && videoRef.current) {
           publication.track.attach(videoRef.current);
           setHasVideo(true);
@@ -385,13 +389,13 @@ const InterviewRoom = () => {
         await roomRef.current.localParticipant.setCameraEnabled(false);
         setHasVideo(false);
         setIsVideoOn(false);
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = null;
         }
       }
     } catch (error) {
-      console.error('Error toggling video:', error);
+      console.error("Error toggling video:", error);
       setIsVideoOn(false);
       setHasVideo(false);
     }
@@ -429,13 +433,15 @@ const InterviewRoom = () => {
     return () => {
       cleanupResources();
       if (roomRef.current) {
-        roomRef.current.disconnect().catch(e => console.error('Cleanup disconnect error:', e));
+        roomRef.current
+          .disconnect()
+          .catch((e) => console.error("Cleanup disconnect error:", e));
       }
     };
   }, []);
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col">
+    <div className="h-screen bg-base text-white flex flex-col">
       <Header
         interviewName={interviewName}
         isRecording={isRecording}

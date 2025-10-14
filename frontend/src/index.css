@@ -4,7 +4,8 @@
   themes:
     acid,
     abyss,
-    dracula --default;
+    dracula,
+    black --default;
 }
 
 @theme {

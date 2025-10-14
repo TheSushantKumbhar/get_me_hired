@@ -1,8 +1,10 @@
 import { Info } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
 
 function JobCard({ job }) {
   const darkTheme = useTheme();
+  const navigate = useNavigate();
 
   return (
     <div className="card bg-base-200 w-[30%] m-4 shadow-sm font-work-sans">
@@ -28,7 +30,10 @@ function JobCard({ job }) {
         <div className="card-actions justify-end">
           <button className="btn btn-primary">Start Interview</button>
           <div className="tooltip" data-tip="info">
-            <button className="btn btn-circle btn-ghost">
+            <button
+              className="btn btn-circle btn-ghost"
+              onClick={() => navigate("/interview")}
+            >
               <Info />
             </button>
           </div>
