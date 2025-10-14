@@ -6,10 +6,9 @@ from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
-from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import add_messages
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from llm.prompts import interview_prompt
 
 load_dotenv()
@@ -20,10 +19,7 @@ pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
 index = pc.Index(os.environ["INDEX_NAME"])
 vector_store = PineconeVectorStore(embedding=embeddings, index=index)
 
-prompt = ChatPromptTemplate([("system", interview_prompt), ("user", "{input}")])
 
-
-# State compatible with LangChain's message format
 class State(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     context: List[Document]
@@ -35,11 +31,10 @@ def retrieve(state: State):
     if not messages:
         return {"context": []}
 
-    # Get the last user message
-    last_message = messages[-1]
-    query = (
-        last_message.content if hasattr(last_message, "content") else str(last_message)
-    )
+    # some python magic code one line job done clown moment
+    query = " ".join(
+        str(msg.content) for msg in messages if isinstance(msg, HumanMessage)
+    ).strip()
 
     if not query:
         return {"context": []}
@@ -58,12 +53,6 @@ def generate(state: State):
             "messages": [AIMessage(content="Hello! I'm ready to start the interview.")]
         }
 
-    # Get the last user message
-    last_message = messages[-1]
-    user_input = (
-        last_message.content if hasattr(last_message, "content") else str(last_message)
-    )
-
     # Format context from retrieved documents
     if context_docs:
         docs_content = "\n\n".join(doc.page_content for doc in context_docs)
@@ -72,13 +61,15 @@ def generate(state: State):
             "No specific questions retrieved. Use your general interview knowledge."
         )
 
-    # Invoke the prompt with input and context
-    prompt_messages = prompt.invoke({"input": user_input, "context": docs_content})
+    # Create the system message with context
+    system_message = SystemMessage(
+        content=f"{interview_prompt}\n\nContext from knowledge base:\n{docs_content}"
+    )
 
-    # Pass the full conversation history to maintain context
-    response = llm.invoke(prompt_messages)
+    # build the full message history: system message + all conversation history
+    messages_for_llm = [system_message] + messages
 
-    # Return AI message
+    response = llm.invoke(messages_for_llm)
     return {"messages": [AIMessage(content=response.content)]}
 
 
@@ -94,19 +85,35 @@ def create_workflow():
     graph_builder.add_edge(START, "retrieve")
     graph_builder.add_edge("retrieve", "generate")
 
-    # Compile the graph
     graph = graph_builder.compile()
     return graph
 
 
-# Test the workflow
+# i hope ts works bruh
 if __name__ == "__main__":
-    from langchain_core.messages import HumanMessage
-
     graph = create_workflow()
-    init_state: State = {
-        "messages": [HumanMessage(content="Hello, I'm ready for the interview")],
+
+    # Initialize state
+    state: State = {
+        "messages": [],
         "context": [],
     }
-    response = graph.invoke(init_state)
-    print("Interview Question:", response["messages"][-1].content)
+
+    while True:
+        user_input = input()
+        if user_input == "/q":
+            break
+
+        state["messages"].append(HumanMessage(content=user_input))
+        response = graph.invoke(state)
+        # type casting this so my LSP does not cry ffs
+        new_message = response["messages"][-1]
+
+        state["messages"].append(new_message)
+        state["context"] = response.get("context", state["context"])
+
+        print("Candice: ", state["messages"][-1].content)
+        print("\n\n")
+
+    print("\n" + "=" * 50)
+    print(f"\nTotal messages in history: {len(state['messages'])}")
