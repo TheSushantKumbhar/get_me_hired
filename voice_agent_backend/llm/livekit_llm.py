@@ -23,9 +23,10 @@ vector_store = PineconeVectorStore(embedding=embeddings, index=index)
 class State(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     context: List[Document]
+    languages: List[str]
 
 
-def retrieve(state: State):
+def retrieve(state: State, languages: List[str] | None):
     """Retrieve relevant documents based on the last user message"""
     messages = state.get("messages", [])
     if not messages:
@@ -39,11 +40,17 @@ def retrieve(state: State):
     if not query:
         return {"context": []}
 
-    retrieved_docs = vector_store.similarity_search(query, k=3)
+    language_filter = {}
+    if languages:
+        language_filter["language"] = {"$in": languages}
+
+    retrieved_docs = vector_store.similarity_search(
+        query=query, k=3, filter=language_filter
+    )
     return {"context": retrieved_docs}
 
 
-def generate(state: State):
+def generate(state: State, languages: List[str] | None):
     """Generate interview response based on context and conversation history"""
     messages = state.get("messages", [])
     context_docs = state.get("context", [])
@@ -63,7 +70,7 @@ def generate(state: State):
 
     # Create the system message with context
     system_message = SystemMessage(
-        content=f"{interview_prompt}\n\nContext from knowledge base:\n{docs_content}"
+        content=f"{interview_prompt}\n\n you are taking interview for the following languages: {languages}\n\nContext from knowledge base:\n{docs_content}"
     )
 
     # build the full message history: system message + all conversation history
@@ -73,13 +80,24 @@ def generate(state: State):
     return {"messages": [AIMessage(content=response.content)]}
 
 
-def create_workflow():
+def create_workflow(languages: list[str] | None = None):
     """Create the LangGraph workflow for the interview agent"""
+
+    def retrieve_with_languages(state: State):
+        if languages:
+            state["languages"] = languages
+        return retrieve(state, languages)
+
+    def generate_with_languages(state: State):
+        if languages:
+            state["languages"] = languages
+        return generate(state, languages)
+
     graph_builder = StateGraph(State)
 
     # Add nodes
-    graph_builder.add_node("retrieve", retrieve)
-    graph_builder.add_node("generate", generate)
+    graph_builder.add_node("retrieve", retrieve_with_languages)
+    graph_builder.add_node("generate", generate_with_languages)
 
     # Add edges
     graph_builder.add_edge(START, "retrieve")
@@ -91,13 +109,10 @@ def create_workflow():
 
 # i hope ts works bruh
 if __name__ == "__main__":
-    graph = create_workflow()
+    graph = create_workflow(languages=["go"])
 
     # Initialize state
-    state: State = {
-        "messages": [],
-        "context": [],
-    }
+    state: State = {"messages": [], "context": [], "languages": ["go"]}
 
     while True:
         user_input = input()
