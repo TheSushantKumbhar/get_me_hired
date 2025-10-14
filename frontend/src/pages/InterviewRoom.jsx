@@ -1,10 +1,8 @@
+// InterviewRoom.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import Header from '../components/InterviewRoom/Header';
 import TranscriptPanel from '../components/InterviewRoom/TranscriptPanel';
-import MessageBox from '../components/InterviewRoom/MessageBox';
 import VideoPanel from '../components/InterviewRoom/VideoPanel';
-import ParticipantIndicators from '../components/InterviewRoom/ParticipantIndicators';
-import InfoPanel from '../components/InterviewRoom/InfoPanel';
 import ControlButtons from '../components/InterviewRoom/ControlButtons';
 import SplineAnimation from '../components/InterviewRoom/SplineAnimation';
 
@@ -18,35 +16,116 @@ const InterviewRoom = () => {
   const [status, setStatus] = useState("Disconnected");
   const [interviewName] = useState("AI Interview Session");
   const [hasVideo, setHasVideo] = useState(false);
-  const [currentMic, setCurrentMic] = useState("");
-  const [isAgentSpeaking, setIsAgentSpeaking] = useState(false); // Track agent speaking state
-  const [participants, setParticipants] = useState([
-    { id: 1, active: false },
-    { id: 2, active: false },
-    { id: 3, active: false },
-    { id: 4, active: false },
-    { id: 5, active: false },
-  ]);
+  const [currentMicId, setCurrentMicId] = useState("");
+  const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
   const agentSpeakingTimeoutRef = useRef(null);
+  const audioContextsRef = useRef([]);
+  const audioElementsRef = useRef([]);
+  const animationFrameIdsRef = useRef([]);
+  const isConnectingRef = useRef(false);
 
-  // Connect to LiveKit Room
+  const cleanupResources = () => {
+    if (agentSpeakingTimeoutRef.current) {
+      clearTimeout(agentSpeakingTimeoutRef.current);
+      agentSpeakingTimeoutRef.current = null;
+    }
+
+    animationFrameIdsRef.current.forEach(id => {
+      try {
+        cancelAnimationFrame(id);
+      } catch (e) {
+        console.error('Error canceling animation frame:', e);
+      }
+    });
+    animationFrameIdsRef.current = [];
+
+    audioContextsRef.current.forEach(context => {
+      try {
+        if (context.state !== 'closed') {
+          context.close();
+        }
+      } catch (e) {
+        console.error('Error closing audio context:', e);
+      }
+    });
+    audioContextsRef.current = [];
+
+    audioElementsRef.current.forEach(element => {
+      try {
+        element.pause();
+        element.srcObject = null;
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+      } catch (e) {
+        console.error('Error removing audio element:', e);
+      }
+    });
+    audioElementsRef.current = [];
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const addFinalTranscript = (speaker, text, segmentId) => {
+    if (!text || !text.trim()) return;
+
+    setTranscript((prev) => {
+      const filtered = prev.filter((msg) => msg.segmentId !== segmentId);
+      return [
+        ...filtered,
+        {
+          speaker,
+          text: text.trim(),
+          timestamp: new Date().toLocaleTimeString(),
+          isFinal: true,
+          segmentId,
+        },
+      ];
+    });
+  };
+
+  const addInterimTranscript = (speaker, text, segmentId) => {
+    if (!text || !text.trim()) return;
+
+    setTranscript((prev) => {
+      const filtered = prev.filter((msg) => msg.segmentId !== segmentId);
+      return [
+        ...filtered,
+        {
+          speaker,
+          text: text.trim(),
+          timestamp: new Date().toLocaleTimeString(),
+          isFinal: false,
+          segmentId,
+          isStreaming: speaker === "Agent",
+        },
+      ];
+    });
+  };
+
   const connectToRoom = async () => {
+    if (isConnectingRef.current || roomRef.current) {
+      return;
+    }
+
     try {
+      isConnectingRef.current = true;
       setStatus("Connecting...");
+
+      const uniqueRoomName = 'interview-room-' + Date.now();
 
       const response = await fetch("http://localhost:5000/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-
-          room: 'interview-room',
-
+          room: uniqueRoomName,
           participant: 'User-' + Math.random().toString(36).substr(2, 9)
         })
-
       });
 
       if (!response.ok) {
@@ -66,14 +145,29 @@ const InterviewRoom = () => {
         },
       });
 
-      // Event handlers
+      roomRef.current = room;
+
+      const attachVideoTrack = (track) => {
+        if (videoRef.current && track) {
+          track.attach(videoRef.current);
+          setHasVideo(true);
+        }
+      };
+
       room.on(LiveKit.RoomEvent.Connected, () => {
         setIsConnected(true);
         setStatus("Connected");
         setRoomId(room.name);
-        updateParticipant(0, true);
+        isConnectingRef.current = false;
 
-        // Register transcription handler for real-time subtitle-like transcripts
+        room.remoteParticipants.forEach((participant) => {
+          participant.videoTracks.forEach((publication) => {
+            if (publication.isSubscribed && publication.videoTrack) {
+              attachVideoTrack(publication.videoTrack);
+            }
+          });
+        });
+
         room.registerTextStreamHandler(
           "lk.transcription",
           async (reader, participantInfo) => {
@@ -88,56 +182,51 @@ const InterviewRoom = () => {
               if (isTranscription && message.trim()) {
                 const speaker =
                   participantInfo.identity.toLowerCase().includes("agent") ||
-                  participantInfo.identity.toLowerCase().includes("ai") ||
-                  participantInfo.identity
-                    .toLowerCase()
-                    .includes("voice-assistant")
+                    participantInfo.identity.toLowerCase().includes("ai") ||
+                    participantInfo.identity.toLowerCase().includes("voice-assistant")
                     ? "Agent"
                     : "You";
 
                 if (speaker === "Agent") {
-                  // Agent is speaking - enable live subtitle effect
                   setIsAgentSpeaking(true);
 
-                  // Clear any existing timeout
                   if (agentSpeakingTimeoutRef.current) {
                     clearTimeout(agentSpeakingTimeoutRef.current);
                   }
 
-                  // Set timeout to stop agent speaking indicator
                   agentSpeakingTimeoutRef.current = setTimeout(
                     () => {
                       setIsAgentSpeaking(false);
                     },
-                    isFinal ? 1000 : 2000,
-                  ); // Longer timeout for interim
+                    isFinal ? 1000 : 2000
+                  );
                 }
 
                 if (isFinal) {
-                  // Final transcription - replace any interim
                   addFinalTranscript(speaker, message, segmentId);
                 } else {
-                  // Interim transcription - show with streaming effect
                   addInterimTranscript(speaker, message, segmentId);
                 }
               }
             } catch (error) {
               console.error("Error processing transcription:", error);
             }
-          },
+          }
         );
       });
 
       room.on(LiveKit.RoomEvent.Disconnected, () => {
+        cleanupResources();
         setIsConnected(false);
+        setHasVideo(false);
         setStatus("Disconnected");
         setIsAgentSpeaking(false);
-        resetParticipants();
+        roomRef.current = null;
+        isConnectingRef.current = false;
       });
 
       room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
         console.log(`${participant.identity} joined`);
-        updateNextParticipant(true);
       });
 
       room.on(
@@ -147,43 +236,49 @@ const InterviewRoom = () => {
             const audioElement = track.attach();
             audioElement.volume = 1.0;
             document.body.appendChild(audioElement);
+            audioElementsRef.current.push(audioElement);
 
-            // Detect when agent starts/stops speaking
             if (participant.identity.toLowerCase().includes("agent")) {
-              // Monitor audio levels to detect when agent is actually speaking
-              const audioContext = new AudioContext();
-              const source = audioContext.createMediaStreamSource(
-                new MediaStream([track.mediaStreamTrack]),
-              );
-              const analyser = audioContext.createAnalyser();
-              source.connect(analyser);
+              try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioContextsRef.current.push(audioContext);
 
-              const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const source = audioContext.createMediaStreamSource(
+                  new MediaStream([track.mediaStreamTrack])
+                );
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
 
-              const checkAudioLevel = () => {
-                analyser.getByteFrequencyData(dataArray);
-                const average =
-                  dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-                if (average > 10) {
-                  // Threshold for speech detection
-                  setIsAgentSpeaking(true);
-                }
+                const checkAudioLevel = () => {
+                  if (audioContext.state === 'closed') return;
 
-                requestAnimationFrame(checkAudioLevel);
-              };
+                  analyser.getByteFrequencyData(dataArray);
+                  const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-              checkAudioLevel();
+                  if (average > 10) {
+                    setIsAgentSpeaking(true);
+                  }
+
+                  const frameId = requestAnimationFrame(checkAudioLevel);
+                  if (!animationFrameIdsRef.current.includes(frameId)) {
+                    animationFrameIdsRef.current.push(frameId);
+                  }
+                };
+
+                checkAudioLevel();
+              } catch (error) {
+                console.error('Error setting up audio analysis:', error);
+              }
             }
           }
 
           if (track.kind === "video") {
-            if (videoRef.current) {
-              track.attach(videoRef.current);
-              setHasVideo(true);
-            }
+            attachVideoTrack(track);
           }
-        },
+        }
       );
 
       room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track) => {
@@ -196,71 +291,45 @@ const InterviewRoom = () => {
         }
       });
 
-      // Connect to room
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(true);
-      roomRef.current = room;
+
     } catch (error) {
       console.error("Connection error:", error);
       setStatus("Error: " + error.message);
+      cleanupResources();
+      roomRef.current = null;
+      isConnectingRef.current = false;
     }
-  };
-
-  // Add final transcript (replaces interim)
-  const addFinalTranscript = (speaker, text, segmentId) => {
-    if (!text || !text.trim()) return;
-
-    setTranscript((prev) => {
-      // Remove any interim message with same segmentId
-      const filtered = prev.filter((msg) => msg.segmentId !== segmentId);
-
-      return [
-        ...filtered,
-        {
-          speaker,
-          text: text.trim(),
-          timestamp: new Date().toLocaleTimeString(),
-          isFinal: true,
-          segmentId,
-        },
-      ];
-    });
-  };
-
-  // Add interim transcript (for streaming effect)
-  const addInterimTranscript = (speaker, text, segmentId) => {
-    if (!text || !text.trim()) return;
-
-    setTranscript((prev) => {
-      // Remove any previous interim message with same segmentId
-      const filtered = prev.filter((msg) => msg.segmentId !== segmentId);
-
-      return [
-        ...filtered,
-        {
-          speaker,
-          text: text.trim(),
-          timestamp: new Date().toLocaleTimeString(),
-          isFinal: false,
-          segmentId,
-          isStreaming: speaker === "Agent", // Enable streaming for agent
-        },
-      ];
-    });
   };
 
   const disconnectFromRoom = async () => {
-    if (roomRef.current) {
-      await roomRef.current.disconnect();
-      roomRef.current = null;
+    if (!roomRef.current) {
+      return;
     }
-    setIsAgentSpeaking(false);
-    if (agentSpeakingTimeoutRef.current) {
-      clearTimeout(agentSpeakingTimeoutRef.current);
+
+    try {
+      const room = roomRef.current;
+      roomRef.current = null;
+
+      cleanupResources();
+      await room.disconnect();
+
+      setIsConnected(false);
+      setIsAgentSpeaking(false);
+      setHasVideo(false);
+      setIsVideoOn(false);
+      setStatus("Disconnected");
+      setTranscript([]);
+      isConnectingRef.current = false;
+    } catch (error) {
+      console.error('Error during disconnect:', error);
+      roomRef.current = null;
+      isConnectingRef.current = false;
     }
   };
 
-  const toggleMute = async () => {
+  const handleMuteToggle = async () => {
     if (roomRef.current) {
       const newState = !isMuted;
       await roomRef.current.localParticipant.setMicrophoneEnabled(!newState);
@@ -268,52 +337,63 @@ const InterviewRoom = () => {
     }
   };
 
-  const onMicChange = async (deviceId) => {
-    setCurrentMic(deviceId);
-    if (roomRef.current) {
-      // disable current mic
-      await roomRef.current.localParticipant.setMicrophoneEnabled(false);
+  const handleMicChange = async (deviceId) => {
+    if (!roomRef.current) {
+      return;
+    }
 
-      // unpublish old track
-      const oldPublication = Array.from(
-        roomRef.current.localParticipant.audioTracks.values()
-      )[0];
-      if (oldPublication) {
-        await roomRef.current.localParticipant.unpublishTrack(oldPublication.track);
+    try {
+      const wasMuted = isMuted;
+
+      if (!wasMuted) {
+        await roomRef.current.localParticipant.setMicrophoneEnabled(false);
       }
 
-      // get new MediaStream from selected device
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: { deviceId: deviceId || undefined }
-      });
-      const newTrack = newStream.getAudioTracks()[0];
-      // publish new track
-      await roomRef.current.localParticipant.publishTrack(newTrack);
-      // re-enable mic if not muted
-      await roomRef.current.localParticipant.setMicrophoneEnabled(!isMuted);
+      await roomRef.current.switchActiveDevice('audioinput', deviceId);
+      setCurrentMicId(deviceId);
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (!wasMuted) {
+        await roomRef.current.localParticipant.setMicrophoneEnabled(true);
+      }
+    } catch (error) {
+      console.error('Error switching microphone:', error);
+      if (!isMuted) {
+        await roomRef.current?.localParticipant.setMicrophoneEnabled(true);
+      }
     }
   };
 
-  const toggleVideo = async () => {
-    if (roomRef.current) {
-      const newState = !isVideoOn;
-      await roomRef.current.localParticipant.setCameraEnabled(newState);
-      setIsVideoOn(newState);
+  const handleVideoToggle = async () => {
+    if (!roomRef.current) {
+      return;
+    }
 
-      if (newState && videoRef.current) {
-        const tracks = Array.from(
-          roomRef.current.localParticipant.videoTracks.values(),
-        );
-        if (tracks.length > 0) {
-          const videoTrack = tracks[0].videoTrack;
-          if (videoTrack) {
-            videoTrack.attach(videoRef.current);
-            setHasVideo(true);
-          }
+    const newState = !isVideoOn;
+    
+    try {
+      if (newState) {
+        const publication = await roomRef.current.localParticipant.setCameraEnabled(true);
+        
+        if (publication && publication.track && videoRef.current) {
+          publication.track.attach(videoRef.current);
+          setHasVideo(true);
+          setIsVideoOn(true);
         }
       } else {
+        await roomRef.current.localParticipant.setCameraEnabled(false);
         setHasVideo(false);
+        setIsVideoOn(false);
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
       }
+    } catch (error) {
+      console.error('Error toggling video:', error);
+      setIsVideoOn(false);
+      setHasVideo(false);
     }
   };
 
@@ -333,7 +413,6 @@ const InterviewRoom = () => {
       );
       roomRef.current.localParticipant.publishData(data, { reliable: true });
 
-      // Add to transcript immediately
       setTranscript((prev) => [
         ...prev,
         {
@@ -346,87 +425,16 @@ const InterviewRoom = () => {
     }
   };
 
-  const updateParticipant = (index, active) => {
-    setParticipants((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], active };
-      }
-      return updated;
-    });
-  };
-
-  const updateNextParticipant = (active) => {
-    setParticipants((prev) => {
-      const updated = [...prev];
-      const index = updated.findIndex((p) => !p.active);
-      if (index !== -1) {
-        updated[index] = { ...updated[index], active };
-      }
-      return updated;
-    });
-  };
-
-  const resetParticipants = () => {
-    setParticipants((prev) => prev.map((p) => ({ ...p, active: false })));
-  };
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      cleanupResources();
       if (roomRef.current) {
-        roomRef.current.disconnect();
-      }
-      if (agentSpeakingTimeoutRef.current) {
-        clearTimeout(agentSpeakingTimeoutRef.current);
+        roomRef.current.disconnect().catch(e => console.error('Cleanup disconnect error:', e));
       }
     };
   }, []);
 
   return (
-    // <div className="h-screen bg-black text-white flex flex-col">
-    //   <Header
-    //     interviewName={interviewName}
-    //     isRecording={isRecording}
-    //     onRecordToggle={toggleRecording}
-    //     isConnected={isConnected}
-    //     onDisconnect={disconnectFromRoom}
-    //     onConnect={connectToRoom}
-    //   />
-
-    //   <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-    //     {/* Left Panel */}
-    //     <div className="flex-1 flex flex-col gap-4">
-    //       <TranscriptPanel
-    //         transcript={transcript}
-    //         isAgentSpeaking={isAgentSpeaking}
-    //       />
-    //       <MessageBox onSendMessage={handleSendMessage} disabled={!isConnected} />
-    //     </div>
-
-    //     {/* Right Panel */}
-    //     <div className="w-96 flex flex-col gap-4">
-    //       {/* <VideoPanel isConnected={isConnected} videoRef={videoRef} hasVideo={hasVideo} /> */}
-    //       <div className="w-full h-screen flex items-center justify-center bg-black">
-    //         <div className="w-[600px] h-[400px]">
-    //           <SplineAnimation />
-    //         </div>
-    //       </div>
-    //       <ParticipantIndicators participants={participants} />
-    //       <InfoPanel roomId={roomId} status={status} />
-    //       <ControlButtons
-    //         isMuted={isMuted}
-    //         isVideoOn={isVideoOn}
-    //         onMuteToggle={toggleMute}
-    //         onVideoToggle={toggleVideo}
-    //         disabled={!isConnected}
-    //         onMicChange={onMicChange}
-    //         currentMicId={currentMic}
-    //       />
-    //     </div>
-    //   </div>
-    // </div>
-
     <div className="h-screen bg-black text-white flex flex-col">
       <Header
         interviewName={interviewName}
@@ -438,42 +446,42 @@ const InterviewRoom = () => {
       />
 
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        {/* Left Panel */}
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
+        <div className="w-[900px] flex flex-col">
           <TranscriptPanel
             transcript={transcript}
             isAgentSpeaking={isAgentSpeaking}
-          />
-          <MessageBox
             onSendMessage={handleSendMessage}
-            disabled={!isConnected}
+            messageInputDisabled={!isConnected}
           />
         </div>
 
-        {/* Right Panel */}
-        <div className="w-96 flex flex-col gap-4 overflow-y-auto">
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
           <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
-            <div className="w-[400px] h-[400px] mx-auto">
+            <div className="w-[400px] h-[280px] mx-auto">
               <SplineAnimation />
             </div>
           </div>
 
-          <ParticipantIndicators participants={participants} />
-          <InfoPanel roomId={roomId} status={status} />
+          <VideoPanel
+            isConnected={isConnected}
+            videoRef={videoRef}
+            hasVideo={hasVideo}
+          />
+
           <ControlButtons
             isMuted={isMuted}
             isVideoOn={isVideoOn}
-            onMuteToggle={toggleMute}
-            onVideoToggle={toggleVideo}
+            onMuteToggle={handleMuteToggle}
+            onVideoToggle={handleVideoToggle}
             disabled={!isConnected}
-            onMicChange={onMicChange}
-            currentMicId={currentMic}
+            onMicChange={handleMicChange}
+            currentMicId={currentMicId}
+            room={roomRef.current}
+            isAgentSpeaking={isAgentSpeaking}
           />
         </div>
-
       </div>
     </div>
-
   );
 };
 
