@@ -5,6 +5,7 @@ from livekit.agents import (
     JobContext,
     WorkerOptions,
     cli,
+    RoomInputOptions,
 )
 from livekit.agents.voice import AgentSession, Agent
 from livekit.plugins import (
@@ -14,11 +15,9 @@ from livekit.plugins import (
 )
 from llm.livekit_llm import create_workflow
 
-
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
-
 
 async def entrypoint(ctx: JobContext):
     logger.info(f"Starting AI Interview Agent in room: {ctx.room.name}")
@@ -26,10 +25,8 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect()
     logger.info(f"Connected to room: {ctx.room.name}")
 
-    # Wait for participant to join
     participant = await ctx.wait_for_participant()
 
-    # Parse job metadata from participant metadata
     job_metadata = {}
     if participant.metadata:
         try:
@@ -38,7 +35,6 @@ async def entrypoint(ctx: JobContext):
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse participant metadata: {e}")
 
-    # Extract job details with defaults
     company_name = job_metadata.get("companyName", "Unknown Company")
     job_title = job_metadata.get("title", "Software Developer")
     job_description = job_metadata.get("description", "General technical position")
@@ -47,7 +43,6 @@ async def entrypoint(ctx: JobContext):
     logger.info(f"Interview for: {company_name} - {job_title}")
     logger.info(f"Required languages: {', '.join(languages)}")
 
-    # CREATE THE AGENT WITH DYNAMIC INSTRUCTIONS
     agent = Agent(
         instructions=f"""
         You are an AI interview assistant conducting an interview for {company_name}.
@@ -66,14 +61,15 @@ async def entrypoint(ctx: JobContext):
         7. Maintain a friendly but professional tone throughout
         8. Keep the conversation natural and engaging
         9. Ask about specific projects or experiences related to {", ".join(languages)}
-        10. If you need time to formulate a response, briefly acknowledge with "Let me think about that..."
+        10. Respond naturally to both voice and text messages from the candidate
+        11. If you need time to formulate a response, briefly acknowledge with "Let me think about that..."
         
+        When the candidate sends a text message, respond conversationally as you would to voice input.
         Start by welcoming the candidate and asking them to introduce themselves.
         Then proceed with questions relevant to the {job_title} role.
         """,
     )
 
-    # Create session with optimized settings
     session = AgentSession(
         vad=silero.VAD.load(
             min_speech_duration=0.5,
@@ -99,15 +95,12 @@ async def entrypoint(ctx: JobContext):
             encoding="linear16",
             sample_rate=24000,
         ),
-        # Performance optimizations
         preemptive_generation=True,
-        # Interruption handling
         allow_interruptions=True,
         min_interruption_duration=1.0,
         min_interruption_words=2,
         resume_false_interruption=True,
         false_interruption_timeout=1.5,
-        # Turn detection
         min_endpointing_delay=0.8,
         max_endpointing_delay=6.0,
         discard_audio_if_uninterruptible=True,
@@ -115,14 +108,16 @@ async def entrypoint(ctx: JobContext):
         max_tool_steps=3,
     )
 
-    # START SESSION
     await session.start(
         room=ctx.room,
         agent=agent,
+        room_input_options=RoomInputOptions(
+            text_enabled=True,
+            audio_enabled=True,
+        ),
     )
     logger.info("AI Interview Agent started successfully")
 
-    # Dynamic greeting based on job details
     await session.say(
         f"Hello! Welcome to your interview for the {job_title} position at {company_name}. "
         f"I'm excited to learn more about your experience, especially with {', '.join(languages[:2])}. "
@@ -131,7 +126,6 @@ async def entrypoint(ctx: JobContext):
     )
 
     logger.info("Initial greeting sent with job-specific context")
-
 
 if __name__ == "__main__":
     cli.run_app(
