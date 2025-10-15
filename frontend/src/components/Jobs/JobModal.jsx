@@ -5,11 +5,24 @@ function JobModal({ job }) {
   const darkTheme = useTheme();
   const navigate = useNavigate();
 
+  const handleConfirm = () => {
+    // Pass job data through navigation state
+    navigate("/interview", { 
+      state: { 
+        jobData: {
+          companyName: job.companyName,
+          title: job.title,
+          description: job.description,
+          languages: job.languages
+        }
+      } 
+    });
+  };
+
   return (
     <dialog id={`modal_${job.companyName}`} className="modal">
       <div className="modal-box w-[60vw]">
         <form method="dialog">
-          {/* if there is a button in form, it will close the modal */}
           <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
             ✕
           </button>
@@ -39,7 +52,7 @@ function JobModal({ job }) {
           ))}
           <button
             className="btn btn-success w-full my-2"
-            onClick={() => navigate("/interview")}
+            onClick={handleConfirm}
           >
             Confirm
           </button>

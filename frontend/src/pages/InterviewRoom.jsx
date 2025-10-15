@@ -1,5 +1,5 @@
-// InterviewRoom.jsx
 import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "../components/InterviewRoom/Header";
 import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
@@ -7,6 +7,8 @@ import ControlButtons from "../components/InterviewRoom/ControlButtons";
 import SplineAnimation from "../components/InterviewRoom/SplineAnimation";
 
 const InterviewRoom = () => {
+  const location = useLocation();
+  
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(false);
@@ -117,22 +119,31 @@ const InterviewRoom = () => {
       isConnectingRef.current = true;
       setStatus("Connecting...");
 
-      const uniqueRoomName = "interview-room-" + Date.now();
+      // Get job data from navigation state
+      const jobData = location.state?.jobData || {
+        companyName: "Default Company",
+        title: "Default Position",
+        description: "General technical interview",
+        languages: ["JavaScript"]
+      };
 
-      const response = await fetch("http://localhost:5000/token", {
+      const participantName = "User-" + Math.random().toString(36).substr(2, 9);
+
+      // Create room with job metadata
+      const response = await fetch("http://localhost:5000/create-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          room: uniqueRoomName,
-          participant: "User-" + Math.random().toString(36).substr(2, 9),
+          participant: participantName,
+          jobData: jobData
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get token. Make sure backend is running.");
+        throw new Error("Failed to create room. Make sure backend is running.");
       }
 
-      const { token, url } = await response.json();
+      const { token, url, room_name } = await response.json();
       const LiveKit = await import("livekit-client");
 
       const room = new LiveKit.Room({
