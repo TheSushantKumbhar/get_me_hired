@@ -119,7 +119,6 @@ const InterviewRoom = () => {
       isConnectingRef.current = true;
       setStatus("Connecting...");
 
-      // Get job data from navigation state
       const jobData = location.state?.jobData || {
         companyName: "Default Company",
         title: "Default Position",
@@ -129,7 +128,6 @@ const InterviewRoom = () => {
 
       const participantName = "User-" + Math.random().toString(36).substr(2, 9);
 
-      // Create room with job metadata
       const response = await fetch("http://localhost:5000/create-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -452,7 +450,7 @@ const InterviewRoom = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-base text-white flex flex-col">
+    <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
       <Header
         interviewName={interviewName}
         isRecording={isRecording}
@@ -462,8 +460,11 @@ const InterviewRoom = () => {
         onConnect={connectToRoom}
       />
 
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        <div className="w-[900px] flex flex-col">
+      {/* Responsive Container with viewport-based scaling */}
+      <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
+        
+        {/* Transcript Panel - Responsive Width */}
+        <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
           <TranscriptPanel
             transcript={transcript}
             isAgentSpeaking={isAgentSpeaking}
@@ -472,19 +473,24 @@ const InterviewRoom = () => {
           />
         </div>
 
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
-          <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
-            <div className="w-[400px] h-[280px] mx-auto">
+        {/* Right Panel - Video and Controls */}
+        <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
+          
+          {/* Spline Animation Container - Responsive */}
+          <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+            <div className="w-full max-w-[400px] aspect-[10/7]">
               <SplineAnimation />
             </div>
           </div>
 
+          {/* Video Panel - Responsive */}
           <VideoPanel
             isConnected={isConnected}
             videoRef={videoRef}
             hasVideo={hasVideo}
           />
 
+          {/* Control Buttons */}
           <ControlButtons
             isMuted={isMuted}
             isVideoOn={isVideoOn}
