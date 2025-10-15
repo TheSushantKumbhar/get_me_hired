@@ -1,5 +1,5 @@
 import os
-from typing import Annotated, List, TypedDict
+from typing import Annotated, List, TypedDict, cast
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
@@ -24,6 +24,9 @@ class State(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     context: List[Document]
     languages: List[str]
+    company_name: str
+    job_title: str
+    job_description: str
 
 
 def retrieve(state: State, languages: List[str] | None):
@@ -50,7 +53,13 @@ def retrieve(state: State, languages: List[str] | None):
     return {"context": retrieved_docs}
 
 
-def generate(state: State, languages: List[str] | None):
+def generate(
+    state: State,
+    languages: List[str] | None,
+    company_name: str | None,
+    job_title: str | None,
+    job_description: str | None,
+):
     """Generate interview response based on context and conversation history"""
     messages = state.get("messages", [])
     context_docs = state.get("context", [])
@@ -68,9 +77,35 @@ def generate(state: State, languages: List[str] | None):
             "No specific questions retrieved. Use your general interview knowledge."
         )
 
+    languages_str = ", ".join(cast(List[str], languages))
+
     # Create the system message with context
+    job_info = f"""
+You are **Candice**, an intelligent and professional AI interviewer representing **{company_name}**.
+
+You are conducting an interview for the position of **{job_title}**.
+
+Below is the official job description:
+{job_description}
+
+The interview focuses on the following languages and technologies:
+{languages_str}
+
+You have access to the following relevant context from the company's internal knowledge base:
+{docs_content}
+    """
     system_message = SystemMessage(
-        content=f"{interview_prompt}\n\n you are taking interview for the following languages: {languages}\n\nContext from knowledge base:\n{docs_content}"
+        content=f"""
+{job_info}
+
+Use the following interviewer behavior and logic rules:
+{interview_prompt}
+
+Remember:
+- Do **not** restate the job description or context in your questions.
+- Always ask one concise, context-aware question at a time.
+- Base your questions on the job requirements, languages, and the candidate’s last response.
+"""
     )
 
     # build the full message history: system message + all conversation history
@@ -80,7 +115,12 @@ def generate(state: State, languages: List[str] | None):
     return {"messages": [AIMessage(content=response.content)]}
 
 
-def create_workflow(languages: list[str] | None = None):
+def create_workflow(
+    languages: list[str] | None = None,
+    company_name: str | None = None,
+    job_title: str | None = None,
+    job_description: str | None = None,
+):
     """Create the LangGraph workflow for the interview agent"""
 
     def retrieve_with_languages(state: State):
@@ -91,7 +131,19 @@ def create_workflow(languages: list[str] | None = None):
     def generate_with_languages(state: State):
         if languages:
             state["languages"] = languages
-        return generate(state, languages)
+        if company_name:
+            state["company_name"] = company_name
+        if job_title:
+            state["job_title"] = job_title
+        if job_description:
+            state["job_description"] = job_description
+        return generate(
+            state=state,
+            languages=languages,
+            company_name=company_name,
+            job_title=job_title,
+            job_description=job_description,
+        )
 
     graph_builder = StateGraph(State)
 
@@ -112,7 +164,14 @@ if __name__ == "__main__":
     graph = create_workflow(languages=["go"])
 
     # Initialize state
-    state: State = {"messages": [], "context": [], "languages": ["go"]}
+    state: State = {
+        "messages": [],
+        "context": [],
+        "languages": ["go"],
+        "company_name": "test company",
+        "job_title": "test_job_title",
+        "job_description": "test_job_description",
+    }
 
     while True:
         user_input = input()

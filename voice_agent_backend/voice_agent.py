@@ -22,13 +22,13 @@ logger = logging.getLogger("voice-agent")
 
 async def entrypoint(ctx: JobContext):
     logger.info(f"Starting AI Interview Agent in room: {ctx.room.name}")
-    
+
     await ctx.connect()
     logger.info(f"Connected to room: {ctx.room.name}")
-    
+
     # Wait for participant to join
     participant = await ctx.wait_for_participant()
-    
+
     # Parse job metadata from participant metadata
     job_metadata = {}
     if participant.metadata:
@@ -37,7 +37,7 @@ async def entrypoint(ctx: JobContext):
             logger.info(f"Loaded job metadata from participant: {job_metadata}")
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse participant metadata: {e}")
-    
+
     # Extract job details with defaults
     company_name = job_metadata.get("companyName", "Unknown Company")
     job_title = job_metadata.get("title", "Software Developer")
@@ -54,18 +54,18 @@ async def entrypoint(ctx: JobContext):
         
         Position: {job_title}
         Job Description: {job_description}
-        Required Programming Languages: {', '.join(languages)}
+        Required Programming Languages: {", ".join(languages)}
         
         Your role is to:
         1. Conduct a professional technical interview specifically for the {job_title} position
         2. Ask relevant questions based on the job requirements
-        3. Focus your technical questions on {', '.join(languages)} programming skills
+        3. Focus your technical questions on {", ".join(languages)} programming skills
         4. Evaluate the candidate's experience with the technologies mentioned in the job description
         5. Listen carefully and provide thoughtful follow-up questions
         6. Probe deeper when necessary to assess true understanding
         7. Maintain a friendly but professional tone throughout
         8. Keep the conversation natural and engaging
-        9. Ask about specific projects or experiences related to {', '.join(languages)}
+        9. Ask about specific projects or experiences related to {", ".join(languages)}
         10. If you need time to formulate a response, briefly acknowledge with "Let me think about that..."
         
         Start by welcoming the candidate and asking them to introduce themselves.
@@ -89,6 +89,9 @@ async def entrypoint(ctx: JobContext):
         llm=lk_langchain.LLMAdapter(
             graph=create_workflow(
                 languages=languages,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_description,
             ),
         ),
         tts=deepgram.TTS(
@@ -130,7 +133,7 @@ async def entrypoint(ctx: JobContext):
     logger.info("Initial greeting sent with job-specific context")
 
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
