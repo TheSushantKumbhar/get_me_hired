@@ -14,10 +14,16 @@ function LandingPage() {
             practical insights to help you improve.
           </p>
           <button
-            className="btn btn-primary italic"
+            className="btn btn-primary italic m-1"
             onClick={() => navigate("/job")}
           >
             Browse Jobs <ArrowRight />{" "}
+          </button>
+          <button
+            className="btn btn-primary italic m-1"
+            onClick={() => navigate("/interview")}
+          >
+            Interview Now <ArrowRight />{" "}
           </button>
         </div>
       </div>
