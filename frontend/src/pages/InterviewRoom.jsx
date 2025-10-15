@@ -414,17 +414,25 @@ const InterviewRoom = () => {
     setIsRecording(!isRecording);
   };
 
-  const handleSendMessage = (message) => {
-    if (roomRef.current && message.trim()) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(
-        JSON.stringify({
-          type: "chat_message",
-          text: message,
-          timestamp: Date.now(),
-        }),
-      );
-      roomRef.current.localParticipant.publishData(data, { reliable: true });
+  const handleSendMessage = async (message) => {
+    if (!roomRef.current || !message.trim()) {
+      return;
+    }
+
+    try {
+      if (typeof roomRef.current.localParticipant.sendText === 'function') {
+        await roomRef.current.localParticipant.sendText(message, {
+          topic: 'lk.chat',
+        });
+      } else {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(message);
+        
+        await roomRef.current.localParticipant.publishData(data, {
+          reliable: true,
+          topic: 'lk.chat',
+        });
+      }
 
       setTranscript((prev) => [
         ...prev,
@@ -435,6 +443,8 @@ const InterviewRoom = () => {
           isFinal: true,
         },
       ]);
+    } catch (error) {
+      console.error('Failed to send text message:', error);
     }
   };
 
@@ -460,10 +470,8 @@ const InterviewRoom = () => {
         onConnect={connectToRoom}
       />
 
-      {/* Responsive Container with viewport-based scaling */}
       <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
         
-        {/* Transcript Panel - Responsive Width */}
         <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
           <TranscriptPanel
             transcript={transcript}
@@ -473,24 +481,20 @@ const InterviewRoom = () => {
           />
         </div>
 
-        {/* Right Panel - Video and Controls */}
         <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
           
-          {/* Spline Animation Container - Responsive */}
           <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
             <div className="w-full max-w-[400px] aspect-[10/7]">
               <SplineAnimation />
             </div>
           </div>
 
-          {/* Video Panel - Responsive */}
           <VideoPanel
             isConnected={isConnected}
             videoRef={videoRef}
             hasVideo={hasVideo}
           />
 
-          {/* Control Buttons */}
           <ControlButtons
             isMuted={isMuted}
             isVideoOn={isVideoOn}

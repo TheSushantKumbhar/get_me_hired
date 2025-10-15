@@ -1,46 +1,46 @@
-  import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
-  // Enhanced hook for real-time streaming text (subtitle-like)
-  const useStreamingText = (text, isStreaming = false, speed = 20) => {
-    const [displayedText, setDisplayedText] = useState('');
-    const [isActive, setIsActive] = useState(false);
+// Enhanced hook for real-time streaming text (subtitle-like)
+const useStreamingText = (text, isStreaming = false, speed = 20) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isActive, setIsActive] = useState(false);
 
-    useEffect(() => {
-      if (!text) {
-        setDisplayedText('');
-        setIsActive(false);
-        return;
-      }
+  useEffect(() => {
+    if (!text) {
+      setDisplayedText('');
+      setIsActive(false);
+      return;
+    }
 
-      // If it's a streaming message (interim), show character by character
-      if (isStreaming) {
-        setIsActive(true);
-        let index = 0;
-        setDisplayedText('');
-        
-        const timer = setInterval(() => {
-          if (index < text.length) {
-            setDisplayedText(text.slice(0, index + 1));
-            index++;
-          } else {
-            setIsActive(false);
-            clearInterval(timer);
-          }
-        }, speed);
+    // If it's a streaming message (interim), show character by character
+    if (isStreaming) {
+      setIsActive(true);
+      let index = 0;
+      setDisplayedText('');
+      
+      const timer = setInterval(() => {
+        if (index < text.length) {
+          setDisplayedText(text.slice(0, index + 1));
+          index++;
+        } else {
+          setIsActive(false);
+          clearInterval(timer);
+        }
+      }, speed);
 
-        return () => clearInterval(timer);
-      } else {
-        // For final messages, show immediately
-        setDisplayedText(text);
-        setIsActive(false);
-      }
-    }, [text, isStreaming, speed]);
+      return () => clearInterval(timer);
+    } else {
+      // For final messages, show immediately
+      setDisplayedText(text);
+      setIsActive(false);
+    }
+  }, [text, isStreaming, speed]);
 
-    return { displayedText, isActive };
-  };
+  return { displayedText, isActive };
+};
 
-  // Message component with streaming effect
- const MessageBubble = ({ msg, isLatestStreaming = false }) => {
+// Message component with streaming effect
+const MessageBubble = ({ msg, isLatestStreaming = false }) => {
   const { displayedText, isActive } = useStreamingText(
     msg.text, 
     isLatestStreaming && !msg.isFinal,
@@ -71,124 +71,123 @@
   );
 };
 
-  const TranscriptPanel = ({ 
-    transcript, 
-    isAgentSpeaking = false,
-    onSendMessage,
-    messageInputDisabled = false 
-  }) => {
-    const transcriptEndRef = useRef(null);
-    const textareaRef = useRef(null);
-    const [message, setMessage] = useState('');
+const TranscriptPanel = ({ 
+  transcript, 
+  isAgentSpeaking = false,
+  onSendMessage,
+  messageInputDisabled = false 
+}) => {
+  const transcriptEndRef = useRef(null);
+  const textareaRef = useRef(null);
+  const [message, setMessage] = useState('');
 
-    useEffect(() => {
-      transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [transcript]);
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcript]);
 
-    // Auto-resize textarea based on content
-    useEffect(() => {
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+    }
+  }, [message]);
+
+  // Filter out system messages - only show Agent and You
+  const filteredTranscript = transcript.filter(
+    msg => msg.speaker === 'You' || msg.speaker === 'Agent'
+  );
+
+  const handleSend = () => {
+    if (message.trim() && !messageInputDisabled && onSendMessage) {
+      onSendMessage(message);
+      setMessage('');
+      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
       }
-    }, [message]);
-
-    // Filter out system messages - only show Agent and You
-    const filteredTranscript = transcript.filter(
-      msg => msg.speaker === 'You' || msg.speaker === 'Agent'
-    );
-
-    const handleSend = () => {
-      if (message.trim() && !messageInputDisabled && onSendMessage) {
-        onSendMessage(message);
-        setMessage('');
-        // Reset textarea height
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-      }
-    };
-
-    const handleKeyPress = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    };
-
-    return (
-      <div className="flex flex-col h-full border-2 border-gray-700 rounded-lg bg-black">
-        {/* Messages Section */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          {filteredTranscript.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-gray-500 text-lg mb-2">AI Interview Ready</p>
-                <p className="text-gray-400 text-sm">Start speaking to see live transcription</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredTranscript.map((msg, idx) => {
-                const isLatest = idx === filteredTranscript.length - 1;
-                const isLatestAgent = isLatest && msg.speaker === 'Agent';
-                
-                return (
-                  <MessageBubble 
-                    key={`${msg.speaker}-${idx}-${msg.timestamp}-${msg.segmentId || ''}`}
-                    msg={msg}
-                    isLatestStreaming={isLatestAgent && isAgentSpeaking}
-                  />
-                );
-              })}
-              <div ref={transcriptEndRef} />
-            </div>
-          )}
-        </div>
-
-        {/*Message Input Section */}
-        <div className="px-4 pb-4">
-          <div className="relative flex items-end bg-black rounded-xl border-2 border-gray-700 focus-within:border-gray-500 transition-colors shadow-lg">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              disabled={messageInputDisabled}
-              placeholder="Message..."
-              rows={1}
-              className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 pr-12 resize-none focus:outline-none max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
-              style={{ minHeight: '44px' }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={messageInputDisabled || !message.trim()}
-              className={`absolute right-2 bottom-2 p-2 rounded-lg transition-all ${
-                message.trim() && !messageInputDisabled
-                  ? 'bg-white text-black hover:bg-gray-200'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              }`}
-              aria-label="Send message"
-            >
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </div>
-      
-        </div>
-      </div>
-    );
+    }
   };
 
-  export default TranscriptPanel;
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full border-2 border-gray-700 rounded-lg bg-black">
+      {/* Messages Section */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        {filteredTranscript.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-500 text-lg mb-2">AI Interview Ready</p>
+              <p className="text-gray-400 text-sm">Start speaking or type a message</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredTranscript.map((msg, idx) => {
+              const isLatest = idx === filteredTranscript.length - 1;
+              const isLatestAgent = isLatest && msg.speaker === 'Agent';
+              
+              return (
+                <MessageBubble 
+                  key={`${msg.speaker}-${idx}-${msg.timestamp}-${msg.segmentId || ''}`}
+                  msg={msg}
+                  isLatestStreaming={isLatestAgent && isAgentSpeaking}
+                />
+              );
+            })}
+            <div ref={transcriptEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Message Input Section */}
+      <div className="px-4 pb-4">
+        <div className="relative flex items-end bg-black rounded-xl border-2 border-gray-700 focus-within:border-gray-500 transition-colors shadow-lg">
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            disabled={messageInputDisabled}
+            placeholder="Type a message or speak..."
+            rows={1}
+            className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 pr-12 resize-none focus:outline-none max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+            style={{ minHeight: '44px' }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={messageInputDisabled || !message.trim()}
+            className={`absolute right-2 bottom-2 p-2 rounded-lg transition-all ${
+              message.trim() && !messageInputDisabled
+                ? 'bg-white text-black hover:bg-gray-200'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+            aria-label="Send message"
+          >
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TranscriptPanel;
