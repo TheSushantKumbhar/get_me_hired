@@ -15,11 +15,14 @@ function JobCard({ job }) {
         />
       </figure>
       <div className="card-body">
+        <h2 className="card-title text-2xl font-space-mono">
+          {job.companyName}
+        </h2>
         <h2 className="card-title">{job.title}</h2>
         <div className="flex gap-1">
           {job.languages.map((lang, i) => (
             <div
-              className={`badge badge-soft ${!darkTheme ? "text-accent" : "text-primary-content"}`}
+              className={`badge badge-soft ${!darkTheme ? "text-warning" : "text-primary-content"}`}
               key={i}
             >
               {lang}
