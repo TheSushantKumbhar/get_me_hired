@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import JobModal from "./JobModal";
 
 function JobCard({ job }) {
   const darkTheme = useTheme();
@@ -30,7 +31,16 @@ function JobCard({ job }) {
           ))}
         </div>
         <div className="card-actions justify-end">
-          <button className="btn btn-primary w-full">Start Interview</button>
+          {/* You can open the modal using document.getElementById('ID').showModal() method */}
+          <button
+            className="btn btn-primary w-full"
+            onClick={() =>
+              document.getElementById(`modal_${job.companyName}`).showModal()
+            }
+          >
+            Start Interview
+          </button>
+          <JobModal job={job} />
         </div>
       </div>
     </div>
