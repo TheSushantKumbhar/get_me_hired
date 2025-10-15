@@ -6,6 +6,7 @@ import Jobs from "./pages/Jobs.jsx";
 import { ThemeProvider } from "./contexts/ThemeContext.jsx";
 import Register from "./pages/Register.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
+import ProtectedRoute from "./ProtectedRoute.jsx";
 
 const router = createBrowserRouter([
   {
@@ -16,7 +17,14 @@ const router = createBrowserRouter([
       { path: "/job", element: <Jobs /> },
     ],
   },
-  { path: "/interview", element: <InterviewRoom /> },
+  {
+    path: "/interview",
+    element: (
+      <ProtectedRoute>
+        <InterviewRoom />
+      </ProtectedRoute>
+    ),
+  },
 ]);
 
 function App() {
