@@ -11,7 +11,7 @@ function ThemeController() {
       <input
         type="checkbox"
         className="theme-controller"
-        value={darkTheme === true ? LIGHT_THEME : DARK_THEME}
+        value={darkTheme ? DARK_THEME : LIGHT_THEME}
         onClick={toggleTheme}
       />
 

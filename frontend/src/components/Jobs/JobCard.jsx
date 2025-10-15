@@ -8,7 +8,7 @@ function JobCard({ job }) {
 
   return (
     <div className="card bg-base-200 w-[30%] m-4 shadow-sm font-work-sans">
-      <figure>
+      <figure className="h-[10vh]">
         <img
           src="https://img.freepik.com/premium-vector/business-meeting-discussion-man-woman-office-table-vector-illustration_107641-425.jpg?semt=ais_hybrid&w=740&q=80"
           alt="Shoes"
@@ -22,24 +22,15 @@ function JobCard({ job }) {
         <div className="flex gap-1">
           {job.languages.map((lang, i) => (
             <div
-              className={`badge badge-soft ${!darkTheme ? "text-warning" : "text-primary-content"}`}
+              className={`badge badge-soft ${darkTheme ? "text-warning" : "text-primary-content"}`}
               key={i}
             >
               {lang}
             </div>
           ))}
         </div>
-        <p>{job.description}</p>
         <div className="card-actions justify-end">
-          <button className="btn btn-primary">Start Interview</button>
-          <div className="tooltip" data-tip="info">
-            <button
-              className="btn btn-circle btn-ghost"
-              onClick={() => navigate("/interview")}
-            >
-              <Info />
-            </button>
-          </div>
+          <button className="btn btn-primary w-full">Start Interview</button>
         </div>
       </div>
     </div>
