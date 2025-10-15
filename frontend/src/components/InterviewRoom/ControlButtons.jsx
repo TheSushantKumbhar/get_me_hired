@@ -1,5 +1,6 @@
 // ControlButtons.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Mic, MicOff, Video, VideoOff, ChevronDown } from 'lucide-react';
 
 const ControlButtons = ({
   isMuted,
@@ -14,7 +15,13 @@ const ControlButtons = ({
 }) => {
   const [mics, setMics] = useState([]);
   const [showMicDropdown, setShowMicDropdown] = useState(false);
+  const [userAudioLevel, setUserAudioLevel] = useState(0);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const streamRef = useRef(null);
 
+  // Get available microphones
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices()
       .then(devices => {
@@ -23,6 +30,78 @@ const ControlButtons = ({
       })
       .catch(console.error);
   }, []);
+
+  // Monitor user's audio level
+  useEffect(() => {
+    let mounted = true;
+
+    const setupAudioAnalyser = async () => {
+      try {
+        // Get user's microphone stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: currentMicId || undefined },
+          video: false
+        });
+        
+        if (!mounted) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        // Create audio context and analyser
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const microphone = audioContext.createMediaStreamSource(stream);
+        
+        analyser.fftSize = 256;
+        microphone.connect(analyser);
+        
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+
+        // Analyze audio levels
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        const updateAudioLevel = () => {
+          if (!mounted || !analyserRef.current) return;
+          
+          analyserRef.current.getByteFrequencyData(dataArray);
+          
+          // Calculate average audio level
+          const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+          const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+          
+          setUserAudioLevel(isMuted ? 0 : normalizedLevel);
+          animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+        };
+        
+        updateAudioLevel();
+      } catch (error) {
+        console.error('Error setting up audio analyser:', error);
+      }
+    };
+
+    setupAudioAnalyser();
+
+    return () => {
+      mounted = false;
+      
+      // Cleanup
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [currentMicId, isMuted]);
 
   const handleMicChange = async (deviceId) => {
     try {
@@ -34,41 +113,42 @@ const ControlButtons = ({
     }
   };
 
+  // Generate bar heights based on audio level
+  const generateBars = () => {
+    const bars = [];
+    const numBars = 15;
+    const activeBars = Math.floor(userAudioLevel * numBars);
+
+    for (let i = 0; i < numBars; i++) {
+      const isActive = i < activeBars && !isMuted;
+      const baseHeight = 8;
+      const maxHeight = 24;
+      const height = isActive 
+        ? baseHeight + Math.random() * (maxHeight - baseHeight)
+        : baseHeight;
+
+      bars.push(
+        <div
+          key={i}
+          className={`w-1 rounded-full transition-all duration-100 ${
+            isActive ? 'bg-green-500' : 'bg-gray-600'
+          }`}
+          style={{
+            height: `${height}px`,
+            animationDelay: isActive ? `${i * 0.05}s` : '0s',
+          }}
+        />
+      );
+    }
+    return bars;
+  };
+
   return (
     <div className="border-2 border-gray-700 rounded-lg bg-black p-3">
       <div className="flex items-center justify-between gap-4">
-        {/* Left: Voice Audio Indicator */}
-        <div className="flex items-center gap-2 min-w-[120px]">
-          {isAgentSpeaking ? (
-            <div className="flex items-center gap-1.5">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 bg-green-500 rounded-full animate-pulse"
-                  style={{
-                    height: `${Math.random() * 16 + 8}px`,
-                    animationDelay: `${i * 0.1}s`,
-                    animationDuration: '0.6s',
-                  }}
-                />
-              ))}
-              {[...Array(10)].map((_, i) => (
-                <div
-                  key={i + 5}
-                  className="w-1 h-2 bg-gray-500 rounded-full"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              {[...Array(15)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 h-2 bg-gray-600 rounded-full"
-                />
-              ))}
-            </div>
-          )}
+        {/* Left: User Voice Audio Indicator */}
+        <div className="flex items-center gap-1.5 min-w-[140px] h-8">
+          {generateBars()}
         </div>
 
         {/* Center: Microphone Button with Dropdown */}
@@ -84,22 +164,11 @@ const ControlButtons = ({
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                {isMuted ? (
-                  <path
-                    fillRule="evenodd"
-                    d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
-                    clipRule="evenodd"
-                  />
-                ) : (
-                  <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" />
-                )}
-              </svg>
+              {isMuted ? (
+                <MicOff className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </button>
           </div>
 
@@ -112,18 +181,9 @@ const ControlButtons = ({
               }`}
               title={isAgentSpeaking ? "Cannot change mic while agent is speaking" : "Select microphone"}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
+              <ChevronDown 
                 className={`h-4 w-4 transition-transform ${showMicDropdown ? 'rotate-180' : ''}`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              />
             </button>
 
             {/* Microphone Dropdown */}
@@ -174,22 +234,11 @@ const ControlButtons = ({
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            {isVideoOn ? (
-              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-            ) : (
-              <path
-                fillRule="evenodd"
-                d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
-                clipRule="evenodd"
-              />
-            )}
-          </svg>
+          {isVideoOn ? (
+            <Video className="h-5 w-5" />
+          ) : (
+            <VideoOff className="h-5 w-5" />
+          )}
         </button>
       </div>
 
