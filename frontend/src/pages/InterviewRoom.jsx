@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/InterviewRoom/Header";
 import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
@@ -8,7 +8,8 @@ import SplineAnimation from "../components/InterviewRoom/SplineAnimation";
 
 const InterviewRoom = () => {
   const location = useLocation();
-  
+  const navigate = useNavigate();
+
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(false);
@@ -123,7 +124,7 @@ const InterviewRoom = () => {
         companyName: "Default Company",
         title: "Default Position",
         description: "General technical interview",
-        languages: ["JavaScript"]
+        languages: ["JavaScript"],
       };
 
       const participantName = "User-" + Math.random().toString(36).substr(2, 9);
@@ -133,7 +134,7 @@ const InterviewRoom = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participant: participantName,
-          jobData: jobData
+          jobData: jobData,
         }),
       });
 
@@ -342,42 +343,41 @@ const InterviewRoom = () => {
   // };
 
   const disconnectFromRoom = async () => {
-  if (!roomRef.current) {
-    return;
-  }
+    if (!roomRef.current) {
+      return;
+    }
 
-  try {
-    const room = roomRef.current;
-    roomRef.current = null;
+    try {
+      const room = roomRef.current;
+      roomRef.current = null;
 
-    cleanupResources();
-    await room.disconnect();
+      cleanupResources();
+      await room.disconnect();
 
-    setIsConnected(false);
-    setIsAgentSpeaking(false);
-    setHasVideo(false);
-    setIsVideoOn(false);
-    setStatus("Disconnected");
-    
-    // Navigate to feedback page with transcript data
-    navigate('/feedback', {
-      state: {
-        transcript: transcript,
-        roomId: roomId,
-        interviewName: interviewName,
-        duration: 'Session ended',
-      }
-    });
-    
-    setTranscript([]);
-    isConnectingRef.current = false;
-  } catch (error) {
-    console.error("Error during disconnect:", error);
-    roomRef.current = null;
-    isConnectingRef.current = false;
-  }
-};
+      setIsConnected(false);
+      setIsAgentSpeaking(false);
+      setHasVideo(false);
+      setIsVideoOn(false);
+      setStatus("Disconnected");
 
+      // Navigate to feedback page with transcript data
+      navigate("/feedback", {
+        state: {
+          transcript: transcript,
+          roomId: roomId,
+          interviewName: interviewName,
+          duration: "Session ended",
+        },
+      });
+
+      setTranscript([]);
+      isConnectingRef.current = false;
+    } catch (error) {
+      console.error("Error during disconnect:", error);
+      roomRef.current = null;
+      isConnectingRef.current = false;
+    }
+  };
 
   const handleMuteToggle = async () => {
     if (roomRef.current) {
@@ -458,17 +458,17 @@ const InterviewRoom = () => {
     }
 
     try {
-      if (typeof roomRef.current.localParticipant.sendText === 'function') {
+      if (typeof roomRef.current.localParticipant.sendText === "function") {
         await roomRef.current.localParticipant.sendText(message, {
-          topic: 'lk.chat',
+          topic: "lk.chat",
         });
       } else {
         const encoder = new TextEncoder();
         const data = encoder.encode(message);
-        
+
         await roomRef.current.localParticipant.publishData(data, {
           reliable: true,
-          topic: 'lk.chat',
+          topic: "lk.chat",
         });
       }
 
@@ -482,7 +482,7 @@ const InterviewRoom = () => {
         },
       ]);
     } catch (error) {
-      console.error('Failed to send text message:', error);
+      console.error("Failed to send text message:", error);
     }
   };
 
@@ -509,7 +509,6 @@ const InterviewRoom = () => {
       />
 
       <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
-        
         <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
           <TranscriptPanel
             transcript={transcript}
@@ -520,7 +519,6 @@ const InterviewRoom = () => {
         </div>
 
         <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
-          
           <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
             <div className="w-full max-w-[400px] aspect-[10/7]">
               <SplineAnimation />
