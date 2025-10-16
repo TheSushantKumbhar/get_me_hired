@@ -7,7 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext.jsx";
 import Register from "./pages/Register.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
-import FeedbackPage from "./pages/feedback.jsx";
+import FeedbackPage from "./pages/FeedbackPage.jsx";
 
 const router = createBrowserRouter([
   {
