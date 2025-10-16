@@ -22,12 +22,6 @@ function LandingPage() {
             >
               Browse Jobs <ArrowRight />{" "}
             </button>
-            <button
-              className="btn btn-secondary text-secondary-content italic m-1"
-              onClick={() => navigate("/interview")}
-            >
-              Try Interview <ArrowRight />{" "}
-            </button>
           </div>
         </div>
       </div>
