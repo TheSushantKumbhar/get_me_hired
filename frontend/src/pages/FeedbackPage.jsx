@@ -44,7 +44,7 @@ const FeedbackPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-100 pt-10">
       {/* Header */}
       <div className="navbar bg-base-200 shadow-lg">
         <div className="flex-1">
