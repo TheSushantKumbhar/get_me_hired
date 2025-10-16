@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext.jsx";
 import Register from "./pages/Register.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
+import FeedbackPage from "./pages/feedback.jsx";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { path: "/", element: <LandingPage /> },
       { path: "/register", element: <Register /> },
       { path: "/job", element: <Jobs /> },
+      { path: "/feedback", element: <FeedbackPage/>}
     ],
   },
   {

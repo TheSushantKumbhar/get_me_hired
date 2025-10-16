@@ -315,31 +315,69 @@ const InterviewRoom = () => {
     }
   };
 
+  // const disconnectFromRoom = async () => {
+  //   if (!roomRef.current) {
+  //     return;
+  //   }
+
+  //   try {
+  //     const room = roomRef.current;
+  //     roomRef.current = null;
+
+  //     cleanupResources();
+  //     await room.disconnect();
+
+  //     setIsConnected(false);
+  //     setIsAgentSpeaking(false);
+  //     setHasVideo(false);
+  //     setIsVideoOn(false);
+  //     setStatus("Disconnected");
+  //     setTranscript([]);
+  //     isConnectingRef.current = false;
+  //   } catch (error) {
+  //     console.error("Error during disconnect:", error);
+  //     roomRef.current = null;
+  //     isConnectingRef.current = false;
+  //   }
+  // };
+
   const disconnectFromRoom = async () => {
-    if (!roomRef.current) {
-      return;
-    }
+  if (!roomRef.current) {
+    return;
+  }
 
-    try {
-      const room = roomRef.current;
-      roomRef.current = null;
+  try {
+    const room = roomRef.current;
+    roomRef.current = null;
 
-      cleanupResources();
-      await room.disconnect();
+    cleanupResources();
+    await room.disconnect();
 
-      setIsConnected(false);
-      setIsAgentSpeaking(false);
-      setHasVideo(false);
-      setIsVideoOn(false);
-      setStatus("Disconnected");
-      setTranscript([]);
-      isConnectingRef.current = false;
-    } catch (error) {
-      console.error("Error during disconnect:", error);
-      roomRef.current = null;
-      isConnectingRef.current = false;
-    }
-  };
+    setIsConnected(false);
+    setIsAgentSpeaking(false);
+    setHasVideo(false);
+    setIsVideoOn(false);
+    setStatus("Disconnected");
+    
+    // Navigate to feedback page with transcript data
+    navigate('/feedback', {
+      state: {
+        transcript: transcript,
+        roomId: roomId,
+        interviewName: interviewName,
+        duration: 'Session ended',
+      }
+    });
+    
+    setTranscript([]);
+    isConnectingRef.current = false;
+  } catch (error) {
+    console.error("Error during disconnect:", error);
+    roomRef.current = null;
+    isConnectingRef.current = false;
+  }
+};
+
 
   const handleMuteToggle = async () => {
     if (roomRef.current) {
