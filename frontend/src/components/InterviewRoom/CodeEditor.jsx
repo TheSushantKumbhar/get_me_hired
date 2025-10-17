@@ -4,12 +4,11 @@ import { useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { executeCode } from "../../api/api";
 
-function CodeEditor() {
+function CodeEditor({codeValue, setCodeValue, output, setOutput, handleCodeSubmit}) {
   const location = useLocation();
 
   const editorRef = useRef();
-  const [codeValue, setCodeValue] = useState("");
-  const [output, setOutput] = useState("");
+
   const [language, setLanguage] = useState(
     location.state?.jobData.languages[0] || "javascript",
   );
@@ -22,10 +21,7 @@ function CodeEditor() {
     editorRef.current = editor;
   };
 
-  const handleCodeSubmit = () => {
-    // send code to voice agent from here.
-    console.log(editorRef.current.getValue());
-  };
+  
   const onLanguageChange = (e) => {
     setLanguage(e.target.value);
   };
