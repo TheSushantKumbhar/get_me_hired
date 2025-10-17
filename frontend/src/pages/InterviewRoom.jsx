@@ -4,7 +4,7 @@ import Header from "../components/InterviewRoom/Header";
 import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
-import SplineAnimation from "../components/InterviewRoom/SplineAnimation";
+import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
 
 const InterviewRoom = () => {
   const location = useLocation();
@@ -21,6 +21,7 @@ const InterviewRoom = () => {
   const [hasVideo, setHasVideo] = useState(false);
   const [currentMicId, setCurrentMicId] = useState("");
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
+  const [videoTrack, setVideoTrack] = useState(null);
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
@@ -157,80 +158,188 @@ const InterviewRoom = () => {
 
       roomRef.current = room;
 
-      const attachVideoTrack = (track) => {
-        if (videoRef.current && track) {
-          track.attach(videoRef.current);
-          setHasVideo(true);
-        }
-      };
-
       room.on(LiveKit.RoomEvent.Connected, () => {
         setIsConnected(true);
         setStatus("Connected");
         setRoomId(room.name);
         isConnectingRef.current = false;
 
+        // Log all participants on connect
+        console.log("=== Room Connected ===");
+        console.log("All participants in room:");
+        room.remoteParticipants.forEach((participant) => {
+          console.log(`- Identity: "${participant.identity}", Name: "${participant.name}"`);
+        });
+
+        // Check for existing video tracks
         room.remoteParticipants.forEach((participant) => {
           participant.videoTracks.forEach((publication) => {
             if (publication.isSubscribed && publication.videoTrack) {
-              attachVideoTrack(publication.videoTrack);
+              const identity = participant.identity.toLowerCase();
+              if (
+                identity.includes("agent") ||
+                identity.includes("ai") ||
+                identity.includes("avatar") ||
+                identity.includes("interviewer")
+              ) {
+                console.log(`Setting video track from existing participant: ${participant.identity}`);
+                setVideoTrack(publication.videoTrack);
+              }
             }
           });
         });
 
+        // Register transcription handler with detailed logging
+        // room.registerTextStreamHandler(
+        //   "lk.transcription",
+        //   async (reader, participantInfo) => {
+        //     try {
+        //       const message = await reader.readAll();
+        //       const isTranscription =
+        //         reader.info.attributes["lk.transcribed_track_id"] != null;
+        //       const isFinal =
+        //         reader.info.attributes["lk.transcription_final"] === "true";
+        //       const segmentId = reader.info.attributes["lk.segment_id"];
+
+        //       // DETAILED LOGGING
+        //       console.log("=== Transcription Received ===");
+        //       console.log("Participant Identity:", participantInfo.identity);
+        //       console.log("Participant Name:", participantInfo.name);
+        //       console.log("Message:", message);
+        //       console.log("Is Transcription:", isTranscription);
+        //       console.log("Is Final:", isFinal);
+        //       console.log("Segment ID:", segmentId);
+
+        //       if (isTranscription && message.trim()) {
+        //         const identity = participantInfo.identity.toLowerCase();
+
+        //         // More flexible agent detection with logging
+        //         const isAgent =
+        //           identity.includes("agent") ||
+        //           identity.includes("ai") ||
+        //           identity.includes("voice") ||
+        //           identity.includes("assistant") ||
+        //           identity.includes("interviewer") ||
+        //           identity.includes("avatar");
+
+        //         const speaker = isAgent ? "Agent" : "You";
+
+        //         console.log(`✅ Detected speaker: ${speaker}`);
+        //         console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+
+        //         if (speaker === "Agent") {
+        //           setIsAgentSpeaking(true);
+
+        //           if (agentSpeakingTimeoutRef.current) {
+        //             clearTimeout(agentSpeakingTimeoutRef.current);
+        //           }
+
+        //           agentSpeakingTimeoutRef.current = setTimeout(
+        //             () => {
+        //               setIsAgentSpeaking(false);
+        //             },
+        //             isFinal ? 1000 : 2000
+        //           );
+        //         }
+
+        //         if (isFinal) {
+        //           console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
+        //           addFinalTranscript(speaker, message, segmentId);
+        //         } else {
+        //           console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
+        //           addInterimTranscript(speaker, message, segmentId);
+        //         }
+        //       } else {
+        //         console.log("⚠️ Transcription skipped - empty or not a transcription");
+        //       }
+        //     } catch (error) {
+        //       console.error("❌ Error processing transcription:", error);
+        //     }
+        //   }
+        // );
+
         room.registerTextStreamHandler(
-          "lk.transcription",
-          async (reader, participantInfo) => {
-            try {
-              const message = await reader.readAll();
-              const isTranscription =
-                reader.info.attributes["lk.transcribed_track_id"] != null;
-              const isFinal =
-                reader.info.attributes["lk.transcription_final"] === "true";
-              const segmentId = reader.info.attributes["lk.segment_id"];
+  "lk.transcription",
+  async (reader, participantInfo) => {
+    try {
+      const message = await reader.readAll();
+      const isTranscription =
+        reader.info.attributes["lk.transcribed_track_id"] != null;
+      const isFinal =
+        reader.info.attributes["lk.transcription_final"] === "true";
+      const segmentId = reader.info.attributes["lk.segment_id"] || 
+                        `segment-${Date.now()}-${Math.random()}`;
 
-              if (isTranscription && message.trim()) {
-                const speaker =
-                  participantInfo.identity.toLowerCase().includes("agent") ||
-                  participantInfo.identity.toLowerCase().includes("ai") ||
-                  participantInfo.identity
-                    .toLowerCase()
-                    .includes("voice-assistant")
-                    ? "Agent"
-                    : "You";
+      // DETAILED LOGGING
+      console.log("=== Transcription Received ===");
+      console.log("Participant Identity:", participantInfo.identity);
+      console.log("Participant Name:", participantInfo.name);
+      console.log("Message:", message);
+      console.log("Is Transcription:", isTranscription);
+      console.log("Is Final:", isFinal);
+      console.log("Segment ID:", segmentId);
+      console.log("All attributes:", reader.info.attributes);
 
-                if (speaker === "Agent") {
-                  setIsAgentSpeaking(true);
+      // Handle both transcriptions AND agent text messages
+      if (message.trim()) {
+        const identity = participantInfo.identity.toLowerCase();
 
-                  if (agentSpeakingTimeoutRef.current) {
-                    clearTimeout(agentSpeakingTimeoutRef.current);
-                  }
+        // More flexible agent detection
+        const isAgent =
+          identity.includes("agent") ||
+          identity.includes("ai") ||
+          identity.includes("voice") ||
+          identity.includes("assistant") ||
+          identity.includes("interviewer") ||
+          identity.includes("avatar") ||
+          identity.includes("simli");
 
-                  agentSpeakingTimeoutRef.current = setTimeout(
-                    () => {
-                      setIsAgentSpeaking(false);
-                    },
-                    isFinal ? 1000 : 2000,
-                  );
-                }
+        const speaker = isAgent ? "Agent" : "You";
 
-                if (isFinal) {
-                  addFinalTranscript(speaker, message, segmentId);
-                } else {
-                  addInterimTranscript(speaker, message, segmentId);
-                }
-              }
-            } catch (error) {
-              console.error("Error processing transcription:", error);
-            }
-          },
-        );
+        console.log(`✅ Detected speaker: ${speaker}`);
+        console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+
+        if (speaker === "Agent") {
+          setIsAgentSpeaking(true);
+
+          if (agentSpeakingTimeoutRef.current) {
+            clearTimeout(agentSpeakingTimeoutRef.current);
+          }
+
+          agentSpeakingTimeoutRef.current = setTimeout(
+            () => {
+              setIsAgentSpeaking(false);
+            },
+            isFinal ? 1000 : 2000
+          );
+        }
+
+        // For agent messages without transcription flag, treat as final
+        const shouldBeFinal = isFinal || (isAgent && !isTranscription);
+
+        if (shouldBeFinal) {
+          console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
+          addFinalTranscript(speaker, message, segmentId);
+        } else {
+          console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
+          addInterimTranscript(speaker, message, segmentId);
+        }
+      } else {
+        console.log("⚠️ Transcription skipped - empty message");
+      }
+    } catch (error) {
+      console.error("❌ Error processing transcription:", error);
+    }
+  }
+);
+
       });
 
       room.on(LiveKit.RoomEvent.Disconnected, () => {
         cleanupResources();
         setIsConnected(false);
         setHasVideo(false);
+        setVideoTrack(null);
         setStatus("Disconnected");
         setIsAgentSpeaking(false);
         roomRef.current = null;
@@ -238,26 +347,48 @@ const InterviewRoom = () => {
       });
 
       room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
-        console.log(`${participant.identity} joined`);
+        console.log(`=== Participant Joined ===`);
+        console.log(`Identity: "${participant.identity}"`);
+        console.log(`Name: "${participant.name}"`);
+      });
+
+      room.on(LiveKit.RoomEvent.TrackPublished, (publication, participant) => {
+        console.log(`=== Track Published ===`);
+        console.log(`By: ${participant.identity}`);
+        console.log(`Kind: ${publication.kind}`);
+        console.log(`Source: ${publication.source}`);
+        console.log(`Track Name: ${publication.trackName}`);
       });
 
       room.on(
         LiveKit.RoomEvent.TrackSubscribed,
         (track, publication, participant) => {
+          console.log(`=== Track Subscribed ===`);
+          console.log(`By: ${participant.identity}`);
+          console.log(`Track Kind: ${track.kind}`);
+
           if (track.kind === "audio") {
             const audioElement = track.attach();
             audioElement.volume = 1.0;
             document.body.appendChild(audioElement);
             audioElementsRef.current.push(audioElement);
 
-            if (participant.identity.toLowerCase().includes("agent")) {
+            const identity = participant.identity.toLowerCase();
+            if (
+              identity.includes("agent") ||
+              identity.includes("ai") ||
+              identity.includes("avatar") ||
+              identity.includes("interviewer") ||
+              identity.includes("voice")
+            ) {
+              console.log("Setting up audio analysis for agent");
               try {
                 const audioContext = new (window.AudioContext ||
                   window.webkitAudioContext)();
                 audioContextsRef.current.push(audioContext);
 
                 const source = audioContext.createMediaStreamSource(
-                  new MediaStream([track.mediaStreamTrack]),
+                  new MediaStream([track.mediaStreamTrack])
                 );
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -290,20 +421,54 @@ const InterviewRoom = () => {
           }
 
           if (track.kind === "video") {
-            attachVideoTrack(track);
+            const identity = participant.identity.toLowerCase();
+
+            // If it's the agent/avatar video, store in videoTrack state
+            if (
+              identity.includes("agent") ||
+              identity.includes("ai") ||
+              identity.includes("avatar") ||
+              identity.includes("interviewer")
+            ) {
+              console.log(`✅ Setting AGENT video track from: ${participant.identity}`);
+              setVideoTrack(track);
+            } else {
+              console.log(`✅ Setting USER video track from: ${participant.identity}`);
+              // User's camera - attach to videoRef for VideoPanel
+              if (videoRef.current) {
+                track.attach(videoRef.current);
+                setHasVideo(true);
+              }
+            }
           }
-        },
+        }
       );
 
-      room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track) => {
-        if (track.kind === "video") {
-          track.detach();
-          setHasVideo(false);
+      room.on(
+        LiveKit.RoomEvent.TrackUnsubscribed,
+        (track, publication, participant) => {
+          if (track.kind === "video") {
+            const identity = participant.identity.toLowerCase();
+
+            if (
+              identity.includes("agent") ||
+              identity.includes("ai") ||
+              identity.includes("avatar") ||
+              identity.includes("interviewer")
+            ) {
+              console.log("Agent video track removed");
+              setVideoTrack(null);
+            } else {
+              console.log("User video track removed");
+              track.detach();
+              setHasVideo(false);
+            }
+          }
+          if (track.kind === "audio") {
+            track.detach();
+          }
         }
-        if (track.kind === "audio") {
-          track.detach();
-        }
-      });
+      );
 
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(true);
@@ -315,32 +480,6 @@ const InterviewRoom = () => {
       isConnectingRef.current = false;
     }
   };
-
-  // const disconnectFromRoom = async () => {
-  //   if (!roomRef.current) {
-  //     return;
-  //   }
-
-  //   try {
-  //     const room = roomRef.current;
-  //     roomRef.current = null;
-
-  //     cleanupResources();
-  //     await room.disconnect();
-
-  //     setIsConnected(false);
-  //     setIsAgentSpeaking(false);
-  //     setHasVideo(false);
-  //     setIsVideoOn(false);
-  //     setStatus("Disconnected");
-  //     setTranscript([]);
-  //     isConnectingRef.current = false;
-  //   } catch (error) {
-  //     console.error("Error during disconnect:", error);
-  //     roomRef.current = null;
-  //     isConnectingRef.current = false;
-  //   }
-  // };
 
   const disconnectFromRoom = async () => {
     if (!roomRef.current) {
@@ -358,6 +497,7 @@ const InterviewRoom = () => {
       setIsAgentSpeaking(false);
       setHasVideo(false);
       setIsVideoOn(false);
+      setVideoTrack(null);
       setStatus("Disconnected");
 
       // Navigate to feedback page with transcript data
@@ -521,7 +661,7 @@ const InterviewRoom = () => {
         <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
           <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
             <div className="w-full max-w-[400px] aspect-[10/7]">
-              <SplineAnimation />
+              <AvatarVideo videoTrack={videoTrack} />
             </div>
           </div>
 
