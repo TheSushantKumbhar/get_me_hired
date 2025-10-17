@@ -15,3 +15,5 @@ pinecone
 
 Flask
 Flask-Cors
+
+livekit-plugins-bey
