@@ -7,15 +7,15 @@ function JobModal({ job }) {
 
   const handleConfirm = () => {
     // Pass job data through navigation state
-    navigate("/interview", { 
-      state: { 
+    navigate(`/interview/${job._id}`, {
+      state: {
         jobData: {
           companyName: job.companyName,
           title: job.title,
           description: job.description,
-          languages: job.languages
-        }
-      } 
+          languages: job.languages,
+        },
+      },
     });
   };
 

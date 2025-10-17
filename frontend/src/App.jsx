@@ -22,7 +22,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/interview",
+    path: "/interview/:id",
     element: (
       <ProtectedRoute>
         <InterviewRoom />
