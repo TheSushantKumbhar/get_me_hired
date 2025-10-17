@@ -101,6 +101,7 @@ function Navbar() {
               <li>
                 <button
                   className={`btn btn-neutral btn-sm m-1 ${darkTheme && "btn-soft"}`}
+                  onClick={() => navigate(`/profile/${user.username}`)}
                 >
                   Profile
                 </button>

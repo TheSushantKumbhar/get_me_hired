@@ -8,6 +8,7 @@ import Register from "./pages/Register.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import FeedbackPage from "./pages/FeedbackPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 
 const router = createBrowserRouter([
   {
@@ -16,7 +17,8 @@ const router = createBrowserRouter([
       { path: "/", element: <LandingPage /> },
       { path: "/register", element: <Register /> },
       { path: "/job", element: <Jobs /> },
-      { path: "/feedback", element: <FeedbackPage/>}
+      { path: "/feedback", element: <FeedbackPage /> },
+      { path: "/profile/:username", element: <ProfilePage /> },
     ],
   },
   {
