@@ -23,6 +23,26 @@ const InterviewRoom = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [videoTrack, setVideoTrack] = useState(null);
 
+  const [codeValue, setCodeValue] = useState("");
+  const [output, setOutput] = useState("");
+  // const handleCodeSubmit = () => {
+  //   // send code to voice agent from here.
+  //   console.log(codeValue);
+  // };
+
+  const handleCodeSubmit = () => {
+  if (!codeValue.trim()) {
+    console.warn("Code value is empty");
+    return;
+  }
+  
+  // Send formatted code message
+  const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
+  handleSendMessage(formattedMessage);
+  console.log("Code sent to agent:", codeValue);
+};
+
+
   const roomRef = useRef(null);
   const videoRef = useRef(null);
   const agentSpeakingTimeoutRef = useRef(null);
@@ -646,6 +666,11 @@ const InterviewRoom = () => {
         isConnected={isConnected}
         onDisconnect={disconnectFromRoom}
         onConnect={connectToRoom}
+        codeValue={codeValue}
+        setCodeValue={setCodeValue}
+        output={output}
+        setOutput={setOutput}
+        handleCodeSubmit={handleCodeSubmit}
       />
 
       <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">

@@ -9,10 +9,15 @@ const Header = ({
   isConnected,
   onDisconnect,
   onConnect,
+  codeValue,
+  setCodeValue,
+  output,
+  setOutput,
+  handleCodeSubmit,
 }) => {
   return (
     <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-gray-700">
-      <CodeEditor />
+      <CodeEditor codeValue={codeValue} setCodeValue={setCodeValue} output={output} setOutput={setOutput} handleCodeSubmit={handleCodeSubmit} />
       <h1 className="text-xl font-medium text-white">{interviewName}</h1>
       <div className="flex gap-3">
         <ThemeController />
