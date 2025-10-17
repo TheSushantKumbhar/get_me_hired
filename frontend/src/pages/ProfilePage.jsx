@@ -7,7 +7,7 @@ function ProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["jobs"],
+    queryKey: ["profiles"],
     queryFn: () => getUserByUsername(username),
   });
 
