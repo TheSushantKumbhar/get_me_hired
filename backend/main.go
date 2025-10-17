@@ -43,6 +43,7 @@ func main() {
 
 	routes.SetupJobRoutes(app, jobController)
 	routes.SetupAuthRoutes(app, userController)
+	routes.SetupUserRoutes(app, userController)
 
 	err = app.Listen(":3000")
 	if err != nil {

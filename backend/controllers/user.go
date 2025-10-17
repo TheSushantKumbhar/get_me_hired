@@ -119,6 +119,18 @@ func (c *UserController) User(ctx *fiber.Ctx) error {
 	return ctx.JSON(user)
 }
 
+func (c *UserController) FindUserByUsername(ctx *fiber.Ctx) error {
+	username := ctx.Params("username")
+
+	user, err := c.Repo.FindByUsername(username)
+	if err != nil {
+		errText := "user not found"
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": errText})
+	}
+
+	return ctx.JSON(user)
+}
+
 func (c *UserController) Logout(ctx *fiber.Ctx) error {
 	cookie := fiber.Cookie{
 		Name:     "jwt",
