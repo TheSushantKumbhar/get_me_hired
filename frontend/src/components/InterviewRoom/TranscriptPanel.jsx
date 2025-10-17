@@ -132,9 +132,9 @@ const TranscriptPanel = ({
         {filteredTranscript.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <p className="text-gray-500 text-lg mb-2">AI Interview Ready</p>
+              <p className="text-gray-500 text-lg mb-2">AI Interview </p>
               <p className="text-gray-400 text-sm">
-                Start speaking or type a message
+                Interview will start soon...
               </p>
             </div>
           </div>
