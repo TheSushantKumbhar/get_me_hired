@@ -5,6 +5,7 @@ import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
 import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
+import toast, { Toaster } from "react-hot-toast";
 
 const InterviewRoom = () => {
   const location = useLocation();
@@ -34,6 +35,31 @@ const InterviewRoom = () => {
   //   // send code to voice agent from here.
   //   console.log(codeValue);
   // };
+  //
+  useEffect(() => {
+    // Detects tab switches within browser
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("User switched to different browser tab");
+        toast.error("do not switch tabs during interview");
+      }
+    };
+
+    // Detects Alt+Tab (switching to different application)
+    const handleBlur = () => {
+      toast.error("do not switch tabs during interview");
+      console.log("User switched to different window/application (Alt+Tab)");
+    };
+
+    // Add both listeners
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
 
   const handleCodeSubmit = async () => {
     setLoadingAnalysis(true);
@@ -698,62 +724,65 @@ const InterviewRoom = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
-      <Header
-        interviewName={interviewName}
-        isRecording={isRecording}
-        onRecordToggle={toggleRecording}
-        isConnected={isConnected}
-        onDisconnect={disconnectFromRoom}
-        onConnect={connectToRoom}
-        codeValue={codeValue}
-        setCodeValue={setCodeValue}
-        output={output}
-        setOutput={setOutput}
-        handleCodeSubmit={handleCodeSubmit}
-        language={language}
-        setLanguage={setLanguage}
-        analysis={analysis}
-        loadingAnalysis={loadingAnalysis}
-      />
+    <>
+      <Toaster />
+      <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
+        <Header
+          interviewName={interviewName}
+          isRecording={isRecording}
+          onRecordToggle={toggleRecording}
+          isConnected={isConnected}
+          onDisconnect={disconnectFromRoom}
+          onConnect={connectToRoom}
+          codeValue={codeValue}
+          setCodeValue={setCodeValue}
+          output={output}
+          setOutput={setOutput}
+          handleCodeSubmit={handleCodeSubmit}
+          language={language}
+          setLanguage={setLanguage}
+          analysis={analysis}
+          loadingAnalysis={loadingAnalysis}
+        />
 
-      <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
-        <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
-          <TranscriptPanel
-            transcript={transcript}
-            isAgentSpeaking={isAgentSpeaking}
-            onSendMessage={handleSendMessage}
-            messageInputDisabled={!isConnected}
-          />
-        </div>
-
-        <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
-          <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
-            <div className="w-full max-w-[400px] aspect-[10/7]">
-              <AvatarVideo videoTrack={videoTrack} />
-            </div>
+        <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
+          <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
+            <TranscriptPanel
+              transcript={transcript}
+              isAgentSpeaking={isAgentSpeaking}
+              onSendMessage={handleSendMessage}
+              messageInputDisabled={!isConnected}
+            />
           </div>
 
-          <VideoPanel
-            isConnected={isConnected}
-            videoRef={videoRef}
-            hasVideo={hasVideo}
-          />
+          <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
+            <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+              <div className="w-full max-w-[400px] aspect-[10/7]">
+                <AvatarVideo videoTrack={videoTrack} />
+              </div>
+            </div>
 
-          <ControlButtons
-            isMuted={isMuted}
-            isVideoOn={isVideoOn}
-            onMuteToggle={handleMuteToggle}
-            onVideoToggle={handleVideoToggle}
-            disabled={!isConnected}
-            onMicChange={handleMicChange}
-            currentMicId={currentMicId}
-            room={roomRef.current}
-            isAgentSpeaking={isAgentSpeaking}
-          />
+            <VideoPanel
+              isConnected={isConnected}
+              videoRef={videoRef}
+              hasVideo={hasVideo}
+            />
+
+            <ControlButtons
+              isMuted={isMuted}
+              isVideoOn={isVideoOn}
+              onMuteToggle={handleMuteToggle}
+              onVideoToggle={handleVideoToggle}
+              disabled={!isConnected}
+              onMicChange={handleMicChange}
+              currentMicId={currentMicId}
+              room={roomRef.current}
+              isAgentSpeaking={isAgentSpeaking}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
