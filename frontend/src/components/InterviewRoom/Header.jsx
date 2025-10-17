@@ -14,10 +14,24 @@ const Header = ({
   output,
   setOutput,
   handleCodeSubmit,
+  language,
+  setLanguage,
+  analysis,
+  loadingAnalysis,
 }) => {
   return (
     <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-gray-700">
-      <CodeEditor codeValue={codeValue} setCodeValue={setCodeValue} output={output} setOutput={setOutput} handleCodeSubmit={handleCodeSubmit} />
+      <CodeEditor
+        codeValue={codeValue}
+        setCodeValue={setCodeValue}
+        output={output}
+        setOutput={setOutput}
+        handleCodeSubmit={handleCodeSubmit}
+        language={language}
+        setLanguage={setLanguage}
+        analysis={analysis}
+        loadingAnalysis={loadingAnalysis}
+      />
       <h1 className="text-xl font-medium text-white">{interviewName}</h1>
       <div className="flex gap-3">
         <ThemeController />

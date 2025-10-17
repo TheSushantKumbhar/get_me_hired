@@ -25,23 +25,49 @@ const InterviewRoom = () => {
 
   const [codeValue, setCodeValue] = useState("");
   const [output, setOutput] = useState("");
+  const [language, setLanguage] = useState(
+    location.state?.jobData.languages[0] || "javascript",
+  );
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [analysis, setAnalysis] = useState("");
   // const handleCodeSubmit = () => {
   //   // send code to voice agent from here.
   //   console.log(codeValue);
   // };
 
-  const handleCodeSubmit = () => {
-  if (!codeValue.trim()) {
-    console.warn("Code value is empty");
-    return;
-  }
-  
-  // Send formatted code message
-  const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
-  handleSendMessage(formattedMessage);
-  console.log("Code sent to agent:", codeValue);
-};
+  const handleCodeSubmit = async () => {
+    setLoadingAnalysis(true);
+    if (!codeValue.trim()) {
+      console.warn("Code value is empty");
+      return;
+    }
 
+    // Send formatted code message
+    const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
+    handleSendMessage(formattedMessage);
+    console.log("Code sent to agent:", codeValue);
+    setAnalysis("");
+
+    const res = await fetch("http://localhost:5000/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: codeValue,
+        language: language,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("fuck yourself");
+    }
+
+    const result = await res.json();
+    console.log(result);
+    setAnalysis(result.ai_analysis);
+    setLoadingAnalysis(false);
+  };
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
@@ -188,7 +214,9 @@ const InterviewRoom = () => {
         console.log("=== Room Connected ===");
         console.log("All participants in room:");
         room.remoteParticipants.forEach((participant) => {
-          console.log(`- Identity: "${participant.identity}", Name: "${participant.name}"`);
+          console.log(
+            `- Identity: "${participant.identity}", Name: "${participant.name}"`,
+          );
         });
 
         // Check for existing video tracks
@@ -202,7 +230,9 @@ const InterviewRoom = () => {
                 identity.includes("avatar") ||
                 identity.includes("interviewer")
               ) {
-                console.log(`Setting video track from existing participant: ${participant.identity}`);
+                console.log(
+                  `Setting video track from existing participant: ${participant.identity}`,
+                );
                 setVideoTrack(publication.videoTrack);
               }
             }
@@ -279,80 +309,86 @@ const InterviewRoom = () => {
         // );
 
         room.registerTextStreamHandler(
-  "lk.transcription",
-  async (reader, participantInfo) => {
-    try {
-      const message = await reader.readAll();
-      const isTranscription =
-        reader.info.attributes["lk.transcribed_track_id"] != null;
-      const isFinal =
-        reader.info.attributes["lk.transcription_final"] === "true";
-      const segmentId = reader.info.attributes["lk.segment_id"] || 
-                        `segment-${Date.now()}-${Math.random()}`;
+          "lk.transcription",
+          async (reader, participantInfo) => {
+            try {
+              const message = await reader.readAll();
+              const isTranscription =
+                reader.info.attributes["lk.transcribed_track_id"] != null;
+              const isFinal =
+                reader.info.attributes["lk.transcription_final"] === "true";
+              const segmentId =
+                reader.info.attributes["lk.segment_id"] ||
+                `segment-${Date.now()}-${Math.random()}`;
 
-      // DETAILED LOGGING
-      console.log("=== Transcription Received ===");
-      console.log("Participant Identity:", participantInfo.identity);
-      console.log("Participant Name:", participantInfo.name);
-      console.log("Message:", message);
-      console.log("Is Transcription:", isTranscription);
-      console.log("Is Final:", isFinal);
-      console.log("Segment ID:", segmentId);
-      console.log("All attributes:", reader.info.attributes);
+              // DETAILED LOGGING
+              console.log("=== Transcription Received ===");
+              console.log("Participant Identity:", participantInfo.identity);
+              console.log("Participant Name:", participantInfo.name);
+              console.log("Message:", message);
+              console.log("Is Transcription:", isTranscription);
+              console.log("Is Final:", isFinal);
+              console.log("Segment ID:", segmentId);
+              console.log("All attributes:", reader.info.attributes);
 
-      // Handle both transcriptions AND agent text messages
-      if (message.trim()) {
-        const identity = participantInfo.identity.toLowerCase();
+              // Handle both transcriptions AND agent text messages
+              if (message.trim()) {
+                const identity = participantInfo.identity.toLowerCase();
 
-        // More flexible agent detection
-        const isAgent =
-          identity.includes("agent") ||
-          identity.includes("ai") ||
-          identity.includes("voice") ||
-          identity.includes("assistant") ||
-          identity.includes("interviewer") ||
-          identity.includes("avatar") ||
-          identity.includes("simli");
+                // More flexible agent detection
+                const isAgent =
+                  identity.includes("agent") ||
+                  identity.includes("ai") ||
+                  identity.includes("voice") ||
+                  identity.includes("assistant") ||
+                  identity.includes("interviewer") ||
+                  identity.includes("avatar") ||
+                  identity.includes("simli");
 
-        const speaker = isAgent ? "Agent" : "You";
+                const speaker = isAgent ? "Agent" : "You";
 
-        console.log(`✅ Detected speaker: ${speaker}`);
-        console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+                console.log(`✅ Detected speaker: ${speaker}`);
+                console.log(
+                  `   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`,
+                );
 
-        if (speaker === "Agent") {
-          setIsAgentSpeaking(true);
+                if (speaker === "Agent") {
+                  setIsAgentSpeaking(true);
 
-          if (agentSpeakingTimeoutRef.current) {
-            clearTimeout(agentSpeakingTimeoutRef.current);
-          }
+                  if (agentSpeakingTimeoutRef.current) {
+                    clearTimeout(agentSpeakingTimeoutRef.current);
+                  }
 
-          agentSpeakingTimeoutRef.current = setTimeout(
-            () => {
-              setIsAgentSpeaking(false);
-            },
-            isFinal ? 1000 : 2000
-          );
-        }
+                  agentSpeakingTimeoutRef.current = setTimeout(
+                    () => {
+                      setIsAgentSpeaking(false);
+                    },
+                    isFinal ? 1000 : 2000,
+                  );
+                }
 
-        // For agent messages without transcription flag, treat as final
-        const shouldBeFinal = isFinal || (isAgent && !isTranscription);
+                // For agent messages without transcription flag, treat as final
+                const shouldBeFinal = isFinal || (isAgent && !isTranscription);
 
-        if (shouldBeFinal) {
-          console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
-          addFinalTranscript(speaker, message, segmentId);
-        } else {
-          console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
-          addInterimTranscript(speaker, message, segmentId);
-        }
-      } else {
-        console.log("⚠️ Transcription skipped - empty message");
-      }
-    } catch (error) {
-      console.error("❌ Error processing transcription:", error);
-    }
-  }
-);
-
+                if (shouldBeFinal) {
+                  console.log(
+                    `Adding FINAL transcript: ${speaker} - ${message}`,
+                  );
+                  addFinalTranscript(speaker, message, segmentId);
+                } else {
+                  console.log(
+                    `Adding INTERIM transcript: ${speaker} - ${message}`,
+                  );
+                  addInterimTranscript(speaker, message, segmentId);
+                }
+              } else {
+                console.log("⚠️ Transcription skipped - empty message");
+              }
+            } catch (error) {
+              console.error("❌ Error processing transcription:", error);
+            }
+          },
+        );
       });
 
       room.on(LiveKit.RoomEvent.Disconnected, () => {
@@ -408,7 +444,7 @@ const InterviewRoom = () => {
                 audioContextsRef.current.push(audioContext);
 
                 const source = audioContext.createMediaStreamSource(
-                  new MediaStream([track.mediaStreamTrack])
+                  new MediaStream([track.mediaStreamTrack]),
                 );
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -450,10 +486,14 @@ const InterviewRoom = () => {
               identity.includes("avatar") ||
               identity.includes("interviewer")
             ) {
-              console.log(`✅ Setting AGENT video track from: ${participant.identity}`);
+              console.log(
+                `✅ Setting AGENT video track from: ${participant.identity}`,
+              );
               setVideoTrack(track);
             } else {
-              console.log(`✅ Setting USER video track from: ${participant.identity}`);
+              console.log(
+                `✅ Setting USER video track from: ${participant.identity}`,
+              );
               // User's camera - attach to videoRef for VideoPanel
               if (videoRef.current) {
                 track.attach(videoRef.current);
@@ -461,7 +501,7 @@ const InterviewRoom = () => {
               }
             }
           }
-        }
+        },
       );
 
       room.on(
@@ -487,7 +527,7 @@ const InterviewRoom = () => {
           if (track.kind === "audio") {
             track.detach();
           }
-        }
+        },
       );
 
       await room.connect(url, token);
@@ -671,6 +711,10 @@ const InterviewRoom = () => {
         output={output}
         setOutput={setOutput}
         handleCodeSubmit={handleCodeSubmit}
+        language={language}
+        setLanguage={setLanguage}
+        analysis={analysis}
+        loadingAnalysis={loadingAnalysis}
       />
 
       <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
