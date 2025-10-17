@@ -1,15 +1,17 @@
 import { Editor } from "@monaco-editor/react";
 import { Code, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { executeCode } from "../../api/api";
 
 function CodeEditor() {
   const location = useLocation();
 
   const editorRef = useRef();
   const [codeValue, setCodeValue] = useState("");
+  const [output, setOutput] = useState("");
   const [language, setLanguage] = useState(
-    localStorage.state?.jobData.languages[0] || "javascript",
+    location.state?.jobData.languages[0] || "javascript",
   );
 
   const languages = location.state?.jobData.languages || ["javascript"];
@@ -21,10 +23,22 @@ function CodeEditor() {
   };
 
   const handleCodeSubmit = () => {
-    console.log(codeValue);
+    // send code to voice agent from here.
+    console.log(editorRef.current.getValue());
   };
   const onLanguageChange = (e) => {
     setLanguage(e.target.value);
+  };
+
+  const runCode = async () => {
+    const sourceCode = editorRef.current.getValue();
+    if (!sourceCode) return;
+    try {
+      const result = await executeCode(language, sourceCode);
+      setOutput(result.run.output);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
@@ -45,7 +59,10 @@ function CodeEditor() {
         ></label>
         <ul className="menu bg-none min-h-full">
           <div className="h-[5vh] w-[60vw] bg-base-200 flex justify-end gap-2">
-            <button className="btn btn-warning">
+            <button
+              className="btn btn-warning"
+              onClick={() => runCode(language, codeValue)}
+            >
               <Play /> Run
             </button>
             <button className="btn btn-success" onClick={handleCodeSubmit}>
@@ -53,9 +70,9 @@ function CodeEditor() {
             </button>
           </div>
           <div className="h-[5vh] w-[60vw] bg-base-200 flex justify-between">
-            <div>
+            <div className="join">
               <button
-                className="btn btn-soft"
+                className="btn btn-soft join-item"
                 onClick={() => {
                   setToggleEditor((prev) => !prev);
                 }}
@@ -64,7 +81,7 @@ function CodeEditor() {
                 Editor
               </button>
               <button
-                className="btn btn-soft"
+                className="btn btn-soft join-item"
                 onClick={() => {
                   setToggleEditor((prev) => !prev);
                 }}
@@ -101,7 +118,13 @@ function CodeEditor() {
             />
           ) : (
             <div className="h-[90vh] w-[60vw] bg-base-100">
-              <h1 className="text-2xl font-work-sans">Output</h1>
+              <div className="m-2">
+                <h1 className="text-2xl font-work-sans">Output</h1>
+                <div className="divider"></div>
+                <div>
+                  <p>{output}</p>
+                </div>
+              </div>
             </div>
           )}
         </ul>
