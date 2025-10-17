@@ -95,16 +95,17 @@ function Navbar() {
               tabIndex="-1"
               className="menu menu-sm dropdown-content bg-base-300 rounded-box z-1 mt-3 w-52 p-2 shadow"
             >
-              <span className="text-center m-1 font-space-mono font-semibold text-lg text-secondary">
+              <span className="text-center m-1 font-space-mono font-semibold text-lg text-base-content">
                 {user.username}
               </span>
               <li>
                 <button
-                  className={`btn btn-neutral btn-sm m-1 ${darkTheme && "btn-soft"}`}
+                  className={`btn btn-neutral btn-sm m-1 ${darkTheme && "btn-soft text-white"}`}
                   onClick={() => navigate(`/profile/${user.username}`)}
                 >
-                  Profile
+                Profile
                 </button>
+
               </li>
               <li>
                 <button
