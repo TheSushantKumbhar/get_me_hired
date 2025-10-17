@@ -6,6 +6,7 @@ function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resume, setResume] = useState(null);
 
   const { register, loading } = useAuth();
 
@@ -24,7 +25,7 @@ function Register() {
   };
 
   return (
-    <div className="pt-[5vh] w-dvw h-full flex justify-center align-middle">
+    <div className="w-dvw h-screen flex justify-center items-center">
       <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-2/5 border p-4">
         <legend className="fieldset-legend w-full text-lg font-space-mono">
           Register
@@ -62,6 +63,20 @@ function Register() {
             setPassword(e.target.value);
           }}
         />
+
+        <fieldset className="fieldset mt-0">
+          <legend className="fieldset-legend">Upload Resume</legend>
+          <input 
+            type="file" 
+            className="file-input w-full" 
+            accept=".pdf"
+            onChange={(e) => {
+              setResume(e.target.files[0]);
+            }}
+          />
+          <label className="label">format: pdf</label>
+        </fieldset>
+
         <button
           disabled={loading}
           className="btn btn-neutral w-full mt-2"

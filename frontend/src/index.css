@@ -2,10 +2,11 @@
 @import "tailwindcss";
 @plugin "daisyui" {
   themes:
-    acid,
+    business --default,
+    emerald,
     abyss,
     dracula,
-    black --default;
+    black ;
 }
 
 @theme {

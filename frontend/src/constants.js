@@ -1,2 +1,2 @@
-export const DARK_THEME = "black";
-export const LIGHT_THEME = "acid";
+export const DARK_THEME = "business";
+export const LIGHT_THEME = "emerald";
