@@ -18,7 +18,7 @@ function ProfilePage() {
     <div className="pt-[5vh] max-w-3/4">
       <h1 className="text-2xl">{data.username}</h1>
       <h2 className="text-xl">{data.email}</h2>
-      {user.id === data.id && (
+      {user._id === data._id && (
         <fieldset className="fieldset">
           <legend className="fieldset-legend">Upload Resume</legend>
           <input type="file" className="file-input" />
