@@ -23,6 +23,9 @@ function CodeEditor() {
   const handleCodeSubmit = () => {
     console.log(codeValue);
   };
+  const onLanguageChange = (e) => {
+    setLanguage(e.target.value);
+  };
 
   return (
     <div className="drawer">
@@ -74,9 +77,12 @@ function CodeEditor() {
               <select
                 defaultValue={language}
                 className="select select-secondary"
+                onChange={(e) => onLanguageChange(e)}
               >
                 {languages.map((lang, i) => (
-                  <option key={i}>{lang}</option>
+                  <option disabled={lang === language} key={i}>
+                    {lang}
+                  </option>
                 ))}
               </select>
             </div>
