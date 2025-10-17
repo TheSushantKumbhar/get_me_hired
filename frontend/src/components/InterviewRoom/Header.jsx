@@ -1,5 +1,6 @@
 import React from "react";
 import ThemeController from "../General/ThemeController";
+import CodeEditor from "./CodeEditor";
 
 const Header = ({
   interviewName,
@@ -11,6 +12,7 @@ const Header = ({
 }) => {
   return (
     <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-gray-700">
+      <CodeEditor />
       <h1 className="text-xl font-medium text-white">{interviewName}</h1>
       <div className="flex gap-3">
         <ThemeController />
