@@ -193,17 +193,6 @@ const InterviewRoom = () => {
     });
   };
 
-  const handleCodeSubmit = () => {
-    if (!codeValue.trim()) {
-      console.warn("Code value is empty");
-      return;
-    }
-
-    const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
-    handleSendMessage(formattedMessage);
-    console.log("Code sent to agent:", codeValue);
-  };
-
   const connectToRoom = async () => {
     if (isConnectingRef.current || roomRef.current) {
       return;
@@ -794,6 +783,7 @@ const InterviewRoom = () => {
           />
         </div>
       </div>
+    </div>
     </>
   );
 };
