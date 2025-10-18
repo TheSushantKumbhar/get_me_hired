@@ -6,6 +6,7 @@ import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
 import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
 import toast, { Toaster } from "react-hot-toast";
+import { io } from "socket.io-client";
 
 const InterviewRoom = () => {
   const location = useLocation();
@@ -40,6 +41,31 @@ const InterviewRoom = () => {
   //   console.log(codeValue);
   // };
   //
+
+  const roomID = "room-001";
+  useEffect(() => {
+    const socket = io("http://127.0.0.1:6969");
+
+    socket.on("connect", () => {
+      console.log("Connected to server:", socket.id);
+
+      // Join the room
+      socket.emit("join_room", { roomId: roomID });
+
+      // Log that we joined
+      console.log(`[+] Joined room: ${roomID}`);
+    });
+
+    socket.on("violation_detected", (data) => {
+      console.log("Violation detected:", data);
+      alert("violation detected please close any retricted software");
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     // Detects tab switches within browser
     const handleVisibilityChange = () => {
