@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import LoginModal from "../Login/LoginModal";
 import ThemeController from "./ThemeController";
-import { Home } from "lucide-react";
+import { SquareCheckBig } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "../../contexts/ThemeContext"; 
 
 function Navbar() {
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ function Navbar() {
           className="btn btn-ghost text-xl font-space-mono"
           onClick={() => navigate("/")}
         >
-          <Home />
+          <SquareCheckBig />
           GMH
         </a>
       </div>
