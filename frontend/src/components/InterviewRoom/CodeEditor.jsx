@@ -4,24 +4,27 @@ import { useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { executeCode } from "../../api/api";
 
-function CodeEditor({codeValue, setCodeValue, output, setOutput, handleCodeSubmit}) {
+function CodeEditor({
+  codeValue,
+  setCodeValue,
+  output,
+  setOutput,
+  handleCodeSubmit,
+  language,
+  setLanguage,
+  analysis,
+  loadingAnalysis,
+}) {
   const location = useLocation();
-
   const editorRef = useRef();
 
-  const [language, setLanguage] = useState(
-    location.state?.jobData.languages[0] || "javascript",
-  );
-
   const languages = location.state?.jobData.languages || ["javascript"];
-
-  const [toggleEditor, setToggleEditor] = useState(true);
+  const [activeTab, setActiveTab] = useState("editor"); // 'editor' | 'output' | 'analysis'
 
   const onMount = (editor) => {
     editorRef.current = editor;
   };
 
-  
   const onLanguageChange = (e) => {
     setLanguage(e.target.value);
   };
@@ -41,56 +44,68 @@ function CodeEditor({codeValue, setCodeValue, output, setOutput, handleCodeSubmi
     <div className="drawer">
       <input id="my-drawer-1" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content">
-        {/* Page content here */}
         <label htmlFor="my-drawer-1" className="btn drawer-button">
           <Code />
           Code
         </label>
       </div>
+
       <div className="drawer-side">
         <label
           htmlFor="my-drawer-1"
           aria-label="close sidebar"
           className="drawer-overlay"
         ></label>
+
         <ul className="menu bg-none min-h-full">
+          {/* === Header with Run + Submit buttons === */}
           <div className="h-[5vh] w-[60vw] bg-base-200 flex justify-end gap-2">
-            <button
-              className="btn btn-warning"
-              onClick={() => runCode(language, codeValue)}
-            >
+            <button className="btn btn-warning" onClick={() => runCode()}>
               <Play /> Run
             </button>
-            <button className="btn btn-success" onClick={handleCodeSubmit}>
+            <button
+              className="btn btn-success"
+              onClick={handleCodeSubmit}
+              disabled={loadingAnalysis}
+            >
               Submit
             </button>
           </div>
+
+          {/* === Tab selector & language dropdown === */}
           <div className="h-[5vh] w-[60vw] bg-base-200 flex justify-between">
             <div className="join">
               <button
-                className="btn btn-soft join-item"
-                onClick={() => {
-                  setToggleEditor((prev) => !prev);
-                }}
-                disabled={toggleEditor}
+                className={`btn join-item ${
+                  activeTab === "editor" ? "btn-active" : "btn-soft"
+                }`}
+                onClick={() => setActiveTab("editor")}
               >
                 Editor
               </button>
               <button
-                className="btn btn-soft join-item"
-                onClick={() => {
-                  setToggleEditor((prev) => !prev);
-                }}
-                disabled={!toggleEditor}
+                className={`btn join-item ${
+                  activeTab === "output" ? "btn-active" : "btn-soft"
+                }`}
+                onClick={() => setActiveTab("output")}
               >
                 Output
               </button>
+              <button
+                className={`btn join-item ${
+                  activeTab === "analysis" ? "btn-active" : "btn-soft"
+                }`}
+                onClick={() => setActiveTab("analysis")}
+              >
+                Analysis
+              </button>
             </div>
+
             <div>
               <select
                 defaultValue={language}
                 className="select select-secondary"
-                onChange={(e) => onLanguageChange(e)}
+                onChange={onLanguageChange}
               >
                 {languages.map((lang, i) => (
                   <option disabled={lang === language} key={i}>
@@ -100,7 +115,9 @@ function CodeEditor({codeValue, setCodeValue, output, setOutput, handleCodeSubmi
               </select>
             </div>
           </div>
-          {toggleEditor === true ? (
+
+          {/* === Editor / Output / Analysis === */}
+          {activeTab === "editor" && (
             <Editor
               height="90vh"
               width="60vw"
@@ -112,15 +129,29 @@ function CodeEditor({codeValue, setCodeValue, output, setOutput, handleCodeSubmi
               value={codeValue}
               onChange={(value) => setCodeValue(value)}
             />
-          ) : (
-            <div className="h-[90vh] w-[60vw] bg-base-100">
-              <div className="m-2">
-                <h1 className="text-2xl font-work-sans">Output</h1>
-                <div className="divider"></div>
-                <div>
-                  <p>{output}</p>
-                </div>
-              </div>
+          )}
+
+          {activeTab === "output" && (
+            <div className="h-[90vh] w-[60vw] bg-base-100 p-4 overflow-auto">
+              <h1 className="text-2xl font-work-sans">Output</h1>
+              <div className="divider"></div>
+              <pre className="whitespace-pre-wrap">{output}</pre>
+            </div>
+          )}
+
+          {activeTab === "analysis" && (
+            <div className="h-[90vh] w-[60vw] bg-base-100 p-4 overflow-auto">
+              <h1 className="text-2xl font-work-sans">Analysis</h1>
+              <div className="divider"></div>
+
+              {analysis ? (
+                <div
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: analysis }}
+                ></div>
+              ) : (
+                <p className="text-gray-500">No analysis available yet.</p>
+              )}
             </div>
           )}
         </ul>

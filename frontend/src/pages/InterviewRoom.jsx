@@ -5,6 +5,7 @@ import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
 import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
+import toast, { Toaster } from "react-hot-toast";
 
 const InterviewRoom = () => {
   const location = useLocation();
@@ -29,6 +30,74 @@ const InterviewRoom = () => {
   // NEW: Violation tracking states
   const [participantViolationCount, setParticipantViolationCount] = useState(0);
   const [eyeMovementViolations, setEyeMovementViolations] = useState(0);
+  const [language, setLanguage] = useState(
+    location.state?.jobData.languages[0] || "javascript",
+  );
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [analysis, setAnalysis] = useState("");
+  // const handleCodeSubmit = () => {
+  //   // send code to voice agent from here.
+  //   console.log(codeValue);
+  // };
+  //
+  useEffect(() => {
+    // Detects tab switches within browser
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log("User switched to different browser tab");
+        toast.error("do not switch tabs during interview");
+      }
+    };
+
+    // Detects Alt+Tab (switching to different application)
+    const handleBlur = () => {
+      toast.error("do not switch tabs during interview");
+      console.log("User switched to different window/application (Alt+Tab)");
+    };
+
+    // Add both listeners
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
+  const handleCodeSubmit = async () => {
+    setLoadingAnalysis(true);
+    if (!codeValue.trim()) {
+      console.warn("Code value is empty");
+      return;
+    }
+
+    // Send formatted code message
+    const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
+    handleSendMessage(formattedMessage);
+    console.log("Code sent to agent:", codeValue);
+    setAnalysis("");
+
+    const res = await fetch("http://localhost:5000/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: codeValue,
+        language: language,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("fuck yourself");
+    }
+
+    const result = await res.json();
+    console.log(result);
+    setAnalysis(result.ai_analysis);
+    setLoadingAnalysis(false);
+  };
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
@@ -190,7 +259,9 @@ const InterviewRoom = () => {
         console.log("=== Room Connected ===");
         console.log("All participants in room:");
         room.remoteParticipants.forEach((participant) => {
-          console.log(`- Identity: "${participant.identity}", Name: "${participant.name}"`);
+          console.log(
+            `- Identity: "${participant.identity}", Name: "${participant.name}"`,
+          );
         });
 
         room.remoteParticipants.forEach((participant) => {
@@ -203,7 +274,9 @@ const InterviewRoom = () => {
                 identity.includes("avatar") ||
                 identity.includes("interviewer")
               ) {
-                console.log(`Setting video track from existing participant: ${participant.identity}`);
+                console.log(
+                  `Setting video track from existing participant: ${participant.identity}`,
+                );
                 setVideoTrack(publication.videoTrack);
               }
             }
@@ -336,7 +409,7 @@ const InterviewRoom = () => {
                 audioContextsRef.current.push(audioContext);
 
                 const source = audioContext.createMediaStreamSource(
-                  new MediaStream([track.mediaStreamTrack])
+                  new MediaStream([track.mediaStreamTrack]),
                 );
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
@@ -377,7 +450,9 @@ const InterviewRoom = () => {
               identity.includes("avatar") ||
               identity.includes("interviewer")
             ) {
-              console.log(`✅ Setting AGENT video track from: ${participant.identity}`);
+              console.log(
+                `✅ Setting AGENT video track from: ${participant.identity}`,
+              );
               setVideoTrack(track);
             } else {
               console.log(`✅ Setting USER video track from: ${participant.identity}`);
@@ -387,7 +462,7 @@ const InterviewRoom = () => {
               }
             }
           }
-        }
+        },
       );
 
       room.on(
@@ -413,7 +488,7 @@ const InterviewRoom = () => {
           if (track.kind === "audio") {
             track.detach();
           }
-        }
+        },
       );
 
       await room.connect(url, token);
@@ -660,37 +735,43 @@ const InterviewRoom = () => {
   }, []);
 
   return (
-    <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
-      <Header
-        interviewName={interviewName}
-        isRecording={isRecording}
-        onRecordToggle={toggleRecording}
-        isConnected={isConnected}
-        onDisconnect={disconnectFromRoom}
-        onConnect={connectToRoom}
-        codeValue={codeValue}
-        setCodeValue={setCodeValue}
-        output={output}
-        setOutput={setOutput}
-        handleCodeSubmit={handleCodeSubmit}
-      />
+    <>
+      <Toaster />
+      <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
+        <Header
+          interviewName={interviewName}
+          isRecording={isRecording}
+          onRecordToggle={toggleRecording}
+          isConnected={isConnected}
+          onDisconnect={disconnectFromRoom}
+          onConnect={connectToRoom}
+          codeValue={codeValue}
+          setCodeValue={setCodeValue}
+          output={output}
+          setOutput={setOutput}
+          handleCodeSubmit={handleCodeSubmit}
+          language={language}
+          setLanguage={setLanguage}
+          analysis={analysis}
+          loadingAnalysis={loadingAnalysis}
+        />
 
-      <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
-        <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
-          <TranscriptPanel
-            transcript={transcript}
-            isAgentSpeaking={isAgentSpeaking}
-            onSendMessage={handleSendMessage}
-            messageInputDisabled={!isConnected}
-          />
-        </div>
-
-        <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
-          <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
-            <div className="w-full max-w-[400px] aspect-[10/7]">
-              <AvatarVideo videoTrack={videoTrack} />
-            </div>
+        <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
+          <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
+            <TranscriptPanel
+              transcript={transcript}
+              isAgentSpeaking={isAgentSpeaking}
+              onSendMessage={handleSendMessage}
+              messageInputDisabled={!isConnected}
+            />
           </div>
+
+          <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
+            <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+              <div className="w-full max-w-[400px] aspect-[10/7]">
+                <AvatarVideo videoTrack={videoTrack} />
+              </div>
+            </div>
 
           <VideoPanel
             isConnected={isConnected}
@@ -713,7 +794,7 @@ const InterviewRoom = () => {
           />
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
