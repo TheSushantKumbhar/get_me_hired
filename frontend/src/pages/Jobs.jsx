@@ -54,10 +54,10 @@ function Jobs() {
                 />
               </div>
               <div className="flex gap-3">
-                <button className="btn btn-outline gap-2">
+                {/* <button className="btn btn-outline gap-2">
                   <Filter className="w-4 h-4" />
                   Filters
-                </button>
+                </button> */}
                 <button className="btn btn-primary gap-2 px-8">
                   <Search className="w-4 h-4" />
                   Search
