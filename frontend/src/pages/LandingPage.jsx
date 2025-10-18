@@ -3,10 +3,12 @@ import { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
+
 function LandingPage() {
   const navigate = useNavigate();
   const featuresRef = useRef([]);
   const [visibleCards, setVisibleCards] = useState([]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -21,17 +23,21 @@ function LandingPage() {
       { threshold: 0.2 }
     );
 
+
     featuresRef.current.forEach((ref) => {
       if (ref) observer.observe(ref);
     });
 
+
     return () => observer.disconnect();
   }, []);
 
+
   return (
-    <div className="overflow-x-hidden w-full">
+    <div className="overflow-x-hidden">
+
       <Toaster />
-      <div className="hero bg-base-200 min-h-[95vh] font-work-sans">
+      <div className="hero bg-base-200 min-h-[95vh] font-work-sans relative">
         <div className="hero-content text-center">
           <div className="max-w-md">
             <h1 className="text-6xl font-bold font-space-mono">Get Me Hired</h1>
@@ -47,51 +53,34 @@ function LandingPage() {
             </button>
           </div>
         </div>
-        <div className="hero bg-base-200 min-h-[95vh] font-work-sans relative">
-  <div className="hero-content text-center">
-    <div className="max-w-md">
-      <h1 className="text-6xl font-bold font-space-mono">Get Me Hired</h1>
-      <p className="py-6 text-lg">
-        Get ready for your next interview with guided practice sessions
-        and practical insights to help you improve.
-      </p>
-      <button
-        className="btn btn-primary italic m-1"
-        onClick={() => navigate("/job")}
-      >
-        Browse Jobs <ArrowRight />
-      </button>
-    </div>
-  </div>
-  
-  {/* Scroll Down Indicator */}
-  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-    <div className="flex flex-col items-center gap-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-         onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
-      <span className="text-sm font-medium">Scroll Down</span>
-      <svg 
-        className="w-6 h-6" 
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M19 14l-7 7m0 0l-7-7m7 7V3" 
-        />
-      </svg>
-    </div>
-  </div>
-</div>
-
+        
+        {/* Scroll Down Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <div className="flex flex-col items-center gap-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+               onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+            <span className="text-sm font-medium">Scroll Down</span>
+            <svg 
+              className="w-6 h-6" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M19 14l-7 7m0 0l-7-7m7 7V3" 
+              />
+            </svg>
+          </div>
+        </div>
       </div>
+
 
       {/* Features Section */}
       <div className="bg-base-100 py-20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <h2 className="text-4xl font-bold mb-4 font-space-mono">
               What We Offer
             </h2>
@@ -100,106 +89,112 @@ function LandingPage() {
             </p>
           </div>
 
-          {/* First Row - 3 Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {/* Card 1 */}
+
+          {/* First Row - 3 Items */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-16">
+            {/* Item 1 */}
             <div
               ref={(el) => (featuresRef.current[0] = el)}
-              className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-700 border border-base-300 ${
+              className={`text-center transition-all duration-700 ${
                 visibleCards.includes(0)
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
             >
-              <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Mic className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg hover:scale-110 transition-transform duration-300">
+                <Mic className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="text-xl font-bold mb-3">Voice Interview Practice</h3>
-              <p className="text-base-content/70 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed max-w-xs mx-auto">
                 Practice with AI voice interviews that feel real and help you improve
               </p>
             </div>
 
-            {/* Card 2 */}
+
+            {/* Item 2 */}
             <div
               ref={(el) => (featuresRef.current[1] = el)}
-              className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-700 border border-base-300 ${
+              className={`text-center transition-all duration-700 ${
                 visibleCards.includes(1)
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
               style={{ transitionDelay: "150ms" }}
             >
-              <div className="w-16 h-16 bg-secondary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <FileText className="w-10 h-10 text-secondary" />
+              <div className="w-20 h-20 bg-gradient-to-br from-secondary to-secondary/70 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg hover:scale-110 transition-transform duration-300">
+                <FileText className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="text-xl font-bold mb-3">Custom Questions</h3>
-              <p className="text-base-content/70 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed max-w-xs mx-auto">
                 Questions matched to your background and the job you want
               </p>
             </div>
 
-            {/* Card 3 */}
+
+            {/* Item 3 */}
             <div
               ref={(el) => (featuresRef.current[2] = el)}
-              className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-700 border border-base-300 ${
+              className={`text-center transition-all duration-700 ${
                 visibleCards.includes(2)
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
               style={{ transitionDelay: "300ms" }}
             >
-              <div className="w-16 h-16 bg-accent/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <BarChart3 className="w-10 h-10 text-accent" />
+              <div className="w-20 h-20 bg-gradient-to-br from-accent to-accent/70 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg hover:scale-110 transition-transform duration-300">
+                <BarChart3 className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="text-xl font-bold mb-3">Track Your Progress</h3>
-              <p className="text-base-content/70 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed max-w-xs mx-auto">
                 Get instant feedback and see how you improve over time
               </p>
             </div>
           </div>
 
-          {/* Second Row - 2 Cards Centered */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Card 4 */}
+
+          {/* Second Row - 2 Items Centered */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 max-w-3xl mx-auto">
+            {/* Item 4 */}
             <div
               ref={(el) => (featuresRef.current[3] = el)}
-              className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-700 border border-base-300 ${
+              className={`text-center transition-all duration-700 ${
                 visibleCards.includes(3)
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
             >
-              <div className="w-16 h-16 bg-success/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Building2 className="w-10 h-10 text-success" />
+              <div className="w-20 h-20 bg-gradient-to-br from-success to-success/70 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg hover:scale-110 transition-transform duration-300">
+                <Building2 className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="text-xl font-bold mb-3">Company Interviews</h3>
-              <p className="text-base-content/70 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed max-w-xs mx-auto">
                 Practice with real interview questions from actual companies
               </p>
             </div>
 
-            {/* Card 5 */}
+
+            {/* Item 5 */}
             <div
               ref={(el) => (featuresRef.current[4] = el)}
-              className={`group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-700 border border-base-300 ${
+              className={`text-center transition-all duration-700 ${
                 visibleCards.includes(4)
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
               style={{ transitionDelay: "150ms" }}
             >
-              <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <MessageSquare className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg hover:scale-110 transition-transform duration-300">
+                <MessageSquare className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
               <h3 className="text-xl font-bold mb-3">Join the Community</h3>
-              <p className="text-base-content/70 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed max-w-xs mx-auto">
                 Share tips, learn from others, and get support from job seekers
               </p>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Footer */}
       <footer className="footer footer-center bg-base-300 text-base-content p-10">
@@ -260,5 +255,6 @@ function LandingPage() {
     </div>
   );
 }
+
 
 export default LandingPage;
