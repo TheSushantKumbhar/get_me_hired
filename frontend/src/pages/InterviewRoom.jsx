@@ -25,23 +25,10 @@ const InterviewRoom = () => {
 
   const [codeValue, setCodeValue] = useState("");
   const [output, setOutput] = useState("");
-  // const handleCodeSubmit = () => {
-  //   // send code to voice agent from here.
-  //   console.log(codeValue);
-  // };
 
-  const handleCodeSubmit = () => {
-  if (!codeValue.trim()) {
-    console.warn("Code value is empty");
-    return;
-  }
-  
-  // Send formatted code message
-  const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
-  handleSendMessage(formattedMessage);
-  console.log("Code sent to agent:", codeValue);
-};
-
+  // NEW: Violation tracking states
+  const [participantViolationCount, setParticipantViolationCount] = useState(0);
+  const [eyeMovementViolations, setEyeMovementViolations] = useState(0);
 
   const roomRef = useRef(null);
   const videoRef = useRef(null);
@@ -50,6 +37,11 @@ const InterviewRoom = () => {
   const audioElementsRef = useRef([]);
   const animationFrameIdsRef = useRef([]);
   const isConnectingRef = useRef(false);
+
+  // NEW: Violation timeout refs
+  const violationTimeoutRef = useRef(null);
+  const eyeViolationTimeoutRef = useRef(null);
+  const isDisconnectingRef = useRef(false);
 
   const cleanupResources = () => {
     if (agentSpeakingTimeoutRef.current) {
@@ -132,6 +124,17 @@ const InterviewRoom = () => {
     });
   };
 
+  const handleCodeSubmit = () => {
+    if (!codeValue.trim()) {
+      console.warn("Code value is empty");
+      return;
+    }
+
+    const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
+    handleSendMessage(formattedMessage);
+    console.log("Code sent to agent:", codeValue);
+  };
+
   const connectToRoom = async () => {
     if (isConnectingRef.current || roomRef.current) {
       return;
@@ -184,14 +187,12 @@ const InterviewRoom = () => {
         setRoomId(room.name);
         isConnectingRef.current = false;
 
-        // Log all participants on connect
         console.log("=== Room Connected ===");
         console.log("All participants in room:");
         room.remoteParticipants.forEach((participant) => {
           console.log(`- Identity: "${participant.identity}", Name: "${participant.name}"`);
         });
 
-        // Check for existing video tracks
         room.remoteParticipants.forEach((participant) => {
           participant.videoTracks.forEach((publication) => {
             if (publication.isSubscribed && publication.videoTrack) {
@@ -209,150 +210,76 @@ const InterviewRoom = () => {
           });
         });
 
-        // Register transcription handler with detailed logging
-        // room.registerTextStreamHandler(
-        //   "lk.transcription",
-        //   async (reader, participantInfo) => {
-        //     try {
-        //       const message = await reader.readAll();
-        //       const isTranscription =
-        //         reader.info.attributes["lk.transcribed_track_id"] != null;
-        //       const isFinal =
-        //         reader.info.attributes["lk.transcription_final"] === "true";
-        //       const segmentId = reader.info.attributes["lk.segment_id"];
-
-        //       // DETAILED LOGGING
-        //       console.log("=== Transcription Received ===");
-        //       console.log("Participant Identity:", participantInfo.identity);
-        //       console.log("Participant Name:", participantInfo.name);
-        //       console.log("Message:", message);
-        //       console.log("Is Transcription:", isTranscription);
-        //       console.log("Is Final:", isFinal);
-        //       console.log("Segment ID:", segmentId);
-
-        //       if (isTranscription && message.trim()) {
-        //         const identity = participantInfo.identity.toLowerCase();
-
-        //         // More flexible agent detection with logging
-        //         const isAgent =
-        //           identity.includes("agent") ||
-        //           identity.includes("ai") ||
-        //           identity.includes("voice") ||
-        //           identity.includes("assistant") ||
-        //           identity.includes("interviewer") ||
-        //           identity.includes("avatar");
-
-        //         const speaker = isAgent ? "Agent" : "You";
-
-        //         console.log(`✅ Detected speaker: ${speaker}`);
-        //         console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
-
-        //         if (speaker === "Agent") {
-        //           setIsAgentSpeaking(true);
-
-        //           if (agentSpeakingTimeoutRef.current) {
-        //             clearTimeout(agentSpeakingTimeoutRef.current);
-        //           }
-
-        //           agentSpeakingTimeoutRef.current = setTimeout(
-        //             () => {
-        //               setIsAgentSpeaking(false);
-        //             },
-        //             isFinal ? 1000 : 2000
-        //           );
-        //         }
-
-        //         if (isFinal) {
-        //           console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
-        //           addFinalTranscript(speaker, message, segmentId);
-        //         } else {
-        //           console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
-        //           addInterimTranscript(speaker, message, segmentId);
-        //         }
-        //       } else {
-        //         console.log("⚠️ Transcription skipped - empty or not a transcription");
-        //       }
-        //     } catch (error) {
-        //       console.error("❌ Error processing transcription:", error);
-        //     }
-        //   }
-        // );
-
         room.registerTextStreamHandler(
-  "lk.transcription",
-  async (reader, participantInfo) => {
-    try {
-      const message = await reader.readAll();
-      const isTranscription =
-        reader.info.attributes["lk.transcribed_track_id"] != null;
-      const isFinal =
-        reader.info.attributes["lk.transcription_final"] === "true";
-      const segmentId = reader.info.attributes["lk.segment_id"] || 
-                        `segment-${Date.now()}-${Math.random()}`;
+          "lk.transcription",
+          async (reader, participantInfo) => {
+            try {
+              const message = await reader.readAll();
+              const isTranscription =
+                reader.info.attributes["lk.transcribed_track_id"] != null;
+              const isFinal =
+                reader.info.attributes["lk.transcription_final"] === "true";
+              const segmentId = reader.info.attributes["lk.segment_id"] || 
+                                `segment-${Date.now()}-${Math.random()}`;
 
-      // DETAILED LOGGING
-      console.log("=== Transcription Received ===");
-      console.log("Participant Identity:", participantInfo.identity);
-      console.log("Participant Name:", participantInfo.name);
-      console.log("Message:", message);
-      console.log("Is Transcription:", isTranscription);
-      console.log("Is Final:", isFinal);
-      console.log("Segment ID:", segmentId);
-      console.log("All attributes:", reader.info.attributes);
+              console.log("=== Transcription Received ===");
+              console.log("Participant Identity:", participantInfo.identity);
+              console.log("Participant Name:", participantInfo.name);
+              console.log("Message:", message);
+              console.log("Is Transcription:", isTranscription);
+              console.log("Is Final:", isFinal);
+              console.log("Segment ID:", segmentId);
+              console.log("All attributes:", reader.info.attributes);
 
-      // Handle both transcriptions AND agent text messages
-      if (message.trim()) {
-        const identity = participantInfo.identity.toLowerCase();
+              if (message.trim()) {
+                const identity = participantInfo.identity.toLowerCase();
 
-        // More flexible agent detection
-        const isAgent =
-          identity.includes("agent") ||
-          identity.includes("ai") ||
-          identity.includes("voice") ||
-          identity.includes("assistant") ||
-          identity.includes("interviewer") ||
-          identity.includes("avatar") ||
-          identity.includes("simli");
+                const isAgent =
+                  identity.includes("agent") ||
+                  identity.includes("ai") ||
+                  identity.includes("voice") ||
+                  identity.includes("assistant") ||
+                  identity.includes("interviewer") ||
+                  identity.includes("avatar") ||
+                  identity.includes("simli");
 
-        const speaker = isAgent ? "Agent" : "You";
+                const speaker = isAgent ? "Agent" : "You";
 
-        console.log(`✅ Detected speaker: ${speaker}`);
-        console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+                console.log(`✅ Detected speaker: ${speaker}`);
+                console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
 
-        if (speaker === "Agent") {
-          setIsAgentSpeaking(true);
+                if (speaker === "Agent") {
+                  setIsAgentSpeaking(true);
 
-          if (agentSpeakingTimeoutRef.current) {
-            clearTimeout(agentSpeakingTimeoutRef.current);
+                  if (agentSpeakingTimeoutRef.current) {
+                    clearTimeout(agentSpeakingTimeoutRef.current);
+                  }
+
+                  agentSpeakingTimeoutRef.current = setTimeout(
+                    () => {
+                      setIsAgentSpeaking(false);
+                    },
+                    isFinal ? 1000 : 2000
+                  );
+                }
+
+                const shouldBeFinal = isFinal || (isAgent && !isTranscription);
+
+                if (shouldBeFinal) {
+                  console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
+                  addFinalTranscript(speaker, message, segmentId);
+                } else {
+                  console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
+                  addInterimTranscript(speaker, message, segmentId);
+                }
+              } else {
+                console.log("⚠️ Transcription skipped - empty message");
+              }
+            } catch (error) {
+              console.error("❌ Error processing transcription:", error);
+            }
           }
-
-          agentSpeakingTimeoutRef.current = setTimeout(
-            () => {
-              setIsAgentSpeaking(false);
-            },
-            isFinal ? 1000 : 2000
-          );
-        }
-
-        // For agent messages without transcription flag, treat as final
-        const shouldBeFinal = isFinal || (isAgent && !isTranscription);
-
-        if (shouldBeFinal) {
-          console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
-          addFinalTranscript(speaker, message, segmentId);
-        } else {
-          console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
-          addInterimTranscript(speaker, message, segmentId);
-        }
-      } else {
-        console.log("⚠️ Transcription skipped - empty message");
-      }
-    } catch (error) {
-      console.error("❌ Error processing transcription:", error);
-    }
-  }
-);
-
+        );
       });
 
       room.on(LiveKit.RoomEvent.Disconnected, () => {
@@ -364,6 +291,7 @@ const InterviewRoom = () => {
         setIsAgentSpeaking(false);
         roomRef.current = null;
         isConnectingRef.current = false;
+        isDisconnectingRef.current = false;
       });
 
       room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
@@ -443,7 +371,6 @@ const InterviewRoom = () => {
           if (track.kind === "video") {
             const identity = participant.identity.toLowerCase();
 
-            // If it's the agent/avatar video, store in videoTrack state
             if (
               identity.includes("agent") ||
               identity.includes("ai") ||
@@ -454,7 +381,6 @@ const InterviewRoom = () => {
               setVideoTrack(track);
             } else {
               console.log(`✅ Setting USER video track from: ${participant.identity}`);
-              // User's camera - attach to videoRef for VideoPanel
               if (videoRef.current) {
                 track.attach(videoRef.current);
                 setHasVideo(true);
@@ -502,13 +428,24 @@ const InterviewRoom = () => {
   };
 
   const disconnectFromRoom = async () => {
-    if (!roomRef.current) {
+    if (!roomRef.current || isDisconnectingRef.current) {
       return;
     }
 
     try {
+      isDisconnectingRef.current = true;
       const room = roomRef.current;
       roomRef.current = null;
+
+      // Clear all violation timeouts
+      if (violationTimeoutRef.current) {
+        clearTimeout(violationTimeoutRef.current);
+        violationTimeoutRef.current = null;
+      }
+      if (eyeViolationTimeoutRef.current) {
+        clearTimeout(eyeViolationTimeoutRef.current);
+        eyeViolationTimeoutRef.current = null;
+      }
 
       cleanupResources();
       await room.disconnect();
@@ -520,7 +457,6 @@ const InterviewRoom = () => {
       setVideoTrack(null);
       setStatus("Disconnected");
 
-      // Navigate to feedback page with transcript data
       navigate("/feedback", {
         state: {
           transcript: transcript,
@@ -536,6 +472,7 @@ const InterviewRoom = () => {
       console.error("Error during disconnect:", error);
       roomRef.current = null;
       isConnectingRef.current = false;
+      isDisconnectingRef.current = false;
     }
   };
 
@@ -646,8 +583,73 @@ const InterviewRoom = () => {
     }
   };
 
+  // NEW: Monitor participant violations and auto-disconnect
+  useEffect(() => {
+    if (!isConnected || isDisconnectingRef.current) {
+      return;
+    }
+
+    if (violationTimeoutRef.current) {
+      clearTimeout(violationTimeoutRef.current);
+      violationTimeoutRef.current = null;
+    }
+
+    if (participantViolationCount > 1) {
+      alert(
+        `VIOLATION DETECTED!\n\nMultiple participants detected on screen (${participantViolationCount}).\n\nOnly 1 participant is allowed during the interview.\n\nYou will be disconnected in 5 seconds.`
+      );
+
+      violationTimeoutRef.current = setTimeout(() => {
+        alert("Interview terminated due to multiple participants violation.");
+        disconnectFromRoom();
+      }, 2000);
+    }
+
+    return () => {
+      if (violationTimeoutRef.current) {
+        clearTimeout(violationTimeoutRef.current);
+        violationTimeoutRef.current = null;
+      }
+    };
+  }, [participantViolationCount, isConnected]);
+
+  // NEW: Monitor eye movement violations and auto-disconnect
+  // useEffect(() => {
+  //   if (!isConnected || isDisconnectingRef.current) {
+  //     return;
+  //   }
+
+  //   if (eyeMovementViolations >= 5) {
+  //     if (eyeViolationTimeoutRef.current) {
+  //       return; // Already scheduled
+  //     }
+
+  //     alert(
+  //       `⚠️ EYE MOVEMENT VIOLATION!\n\nExcessive eye movements detected (${eyeMovementViolations}).\n\nYou must maintain eye contact with the screen.\n\nYou will be disconnected in 5 seconds.`
+  //     );
+
+  //     eyeViolationTimeoutRef.current = setTimeout(() => {
+  //       alert("Interview terminated due to excessive eye movement violations.");
+  //       disconnectFromRoom();
+  //     }, 5000);
+  //   }
+
+  //   return () => {
+  //     if (eyeViolationTimeoutRef.current) {
+  //       clearTimeout(eyeViolationTimeoutRef.current);
+  //       eyeViolationTimeoutRef.current = null;
+  //     }
+  //   };
+  // }, [eyeMovementViolations, isConnected]);
+
   useEffect(() => {
     return () => {
+      if (violationTimeoutRef.current) {
+        clearTimeout(violationTimeoutRef.current);
+      }
+      if (eyeViolationTimeoutRef.current) {
+        clearTimeout(eyeViolationTimeoutRef.current);
+      }
       cleanupResources();
       if (roomRef.current) {
         roomRef.current
@@ -694,6 +696,8 @@ const InterviewRoom = () => {
             isConnected={isConnected}
             videoRef={videoRef}
             hasVideo={hasVideo}
+            onParticipantCountChange={setParticipantViolationCount}
+            onEyeViolationCountChange={setEyeMovementViolations}
           />
 
           <ControlButtons
