@@ -333,7 +333,7 @@ const InterviewRoom = () => {
 
                 const speaker = isAgent ? "Agent" : "You";
 
-                console.log(`✅ Detected speaker: ${speaker}`);
+                console.log(`Detected speaker: ${speaker}`);
                 console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
 
                 if (speaker === "Agent") {
@@ -361,10 +361,10 @@ const InterviewRoom = () => {
                   addInterimTranscript(speaker, message, segmentId);
                 }
               } else {
-                console.log("⚠️ Transcription skipped - empty message");
+                console.log(" Transcription skipped - empty message");
               }
             } catch (error) {
-              console.error("❌ Error processing transcription:", error);
+              console.error("Error processing transcription:", error);
             }
           }
         );
@@ -466,11 +466,11 @@ const InterviewRoom = () => {
               identity.includes("interviewer")
             ) {
               console.log(
-                `✅ Setting AGENT video track from: ${participant.identity}`,
+                ` Setting AGENT video track from: ${participant.identity}`,
               );
               setVideoTrack(track);
             } else {
-              console.log(`✅ Setting USER video track from: ${participant.identity}`);
+              console.log(`Setting USER video track from: ${participant.identity}`);
               if (videoRef.current) {
                 track.attach(videoRef.current);
                 setHasVideo(true);
@@ -702,35 +702,6 @@ const InterviewRoom = () => {
       }
     };
   }, [participantViolationCount, isConnected]);
-
-  // NEW: Monitor eye movement violations and auto-disconnect
-  // useEffect(() => {
-  //   if (!isConnected || isDisconnectingRef.current) {
-  //     return;
-  //   }
-
-  //   if (eyeMovementViolations >= 5) {
-  //     if (eyeViolationTimeoutRef.current) {
-  //       return; // Already scheduled
-  //     }
-
-  //     alert(
-  //       `⚠️ EYE MOVEMENT VIOLATION!\n\nExcessive eye movements detected (${eyeMovementViolations}).\n\nYou must maintain eye contact with the screen.\n\nYou will be disconnected in 5 seconds.`
-  //     );
-
-  //     eyeViolationTimeoutRef.current = setTimeout(() => {
-  //       alert("Interview terminated due to excessive eye movement violations.");
-  //       disconnectFromRoom();
-  //     }, 5000);
-  //   }
-
-  //   return () => {
-  //     if (eyeViolationTimeoutRef.current) {
-  //       clearTimeout(eyeViolationTimeoutRef.current);
-  //       eyeViolationTimeoutRef.current = null;
-  //     }
-  //   };
-  // }, [eyeMovementViolations, isConnected]);
 
   useEffect(() => {
     return () => {
