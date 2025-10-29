@@ -1,6 +1,14 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/TheSushantKumbhar/get_me_hired/backend/models"
@@ -21,35 +29,99 @@ func NewUserController(repo *repository.UserRepository) *UserController {
 }
 
 func (c *UserController) Register(ctx *fiber.Ctx) error {
-	var data map[string]string
+	username := ctx.FormValue("username")
+	email := ctx.FormValue("email")
+	passwordStr := ctx.FormValue("password")
 
-	if err := ctx.BodyParser(&data); err != nil {
-		errText := "invalid request body"
-		status := 400
-		return ctx.Status(status).JSON(fiber.Map{"error": errText})
+	resumeFile, err := ctx.FormFile("resume")
+	if err != nil {
+		errText := "failed to retrieve resume file"
+		log.Println(err)
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": errText})
 	}
 
-	password, err := bcrypt.GenerateFromPassword([]byte(data["password"]), 14)
+	password, err := bcrypt.GenerateFromPassword([]byte(passwordStr), 14)
 	if err != nil {
 		errText := "failed to encrypt the password"
 		status := 400
 		return ctx.Status(status).JSON(fiber.Map{"error": errText})
 	}
 
+	ext := filepath.Ext(resumeFile.Filename)
+	tempPath := fmt.Sprintf("../store/user/resume/resume_%s", username, ext)
+	if err := ctx.SaveFile(resumeFile, tempPath); err != nil {
+		log.Println("some error idk")
+		return ctx.Status(500).JSON(fiber.Map{"error": "failed to save temp file"})
+	}
+
+	// add upload to cloud later
+	/*
+		resumeURL, err := models.UploadToCloudinary(tempPath, "get_me_hired/users/resume")
+		if err != nil {
+			errText := "failed to upload to cloudinary"
+			status := 400
+			return ctx.Status(status).JSON(fiber.Map{"error": errText})
+		}
+	*/
+	resumeURL := tempPath
+
+	parsedResume, err := parseResume(resumeURL)
+	if err != nil {
+		log.Println("error parsing resume: ", err)
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to parse resume"})
+	}
+
 	user := models.User{
-		Username: data["username"],
-		Email:    data["email"],
-		Password: password,
+		Username:     username,
+		Email:        email,
+		Password:     password,
+		ResumePath:   resumeURL,
+		ParsedResume: parsedResume,
 	}
 
 	id, err := c.Repo.Insert(user)
 	if err != nil {
+		log.Println("some more error idk")
 		errText := "user already exists"
 		status := 400
 		return ctx.Status(status).JSON(fiber.Map{"error": errText})
 	}
 
-	return ctx.Status(201).JSON(fiber.Map{"_id": id})
+	return ctx.Status(201).JSON(fiber.Map{"_id": id, "resumePath": resumeURL})
+}
+
+func parseResume(path string) (string, error) {
+	data := map[string]string{
+		"resume_path": path,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode json %v", err)
+	}
+
+	baseURL := os.Getenv("LLM_SERVER_URL")
+	url := fmt.Sprintf("%v/parse", baseURL)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to reach parser: %v", err)
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("failed to close response body %v", cerr)
+		}
+	}()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read parsed response: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("parser returned error: %s", string(body))
+	}
+
+	return string(body), nil
 }
 
 func (c *UserController) Login(ctx *fiber.Ctx) error {

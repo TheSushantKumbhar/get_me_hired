@@ -33,6 +33,7 @@ func main() {
 	})
 
 	client := models.ConnectDatabase()
+	// models.InitCloudinary()
 	dbName := os.Getenv("MONGODB_NAME")
 
 	jobRepo := repository.NewJobRepository(client, dbName)

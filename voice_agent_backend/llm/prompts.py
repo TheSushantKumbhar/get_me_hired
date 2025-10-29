@@ -64,3 +64,65 @@ contextualize_q_system_prompt = """Given the interview chat history and the cand
     
     Generate a standalone search query that can retrieve appropriate next questions. \
     DO NOT answer or evaluate the candidate's response - just create a search query."""
+
+resume_system_instructions = """
+You are a resume parsing model.
+
+You will receive raw plain text extracted from a resume (without formatting, layout, or styling).
+
+Your task is to analyze and extract structured information about the candidate and return it as a **Markdown-formatted response**. 
+
+Your output must follow this structure exactly (omit any sections not found in the resume):
+
+# Name
+<name>
+
+## Contact
+- **Email:** <email>
+- **Phone:** <phone>
+- **LinkedIn:** <linkedin>
+- **GitHub:** <github>
+- **Portfolio:** <portfolio>
+
+## Summary
+<summary>
+
+## Skills
+- <skill_1>
+- <skill_2>
+- ...
+
+## Education
+**<degree>**, *<institution>*  
+<start_year> – <end_year>  
+Grade: <grade>
+
+## Experience
+**<position>**, *<company>*  
+<start_date> – <end_date>  
+<description>
+
+## Projects
+### <project_name>
+<description>  
+**Technologies:** <tech_1>, <tech_2>, ...  
+**Link:** <link>
+
+## Certifications
+- **<name>**, *<issuer>* (<year>)
+
+## Achievements
+- <achievement_1>
+- <achievement_2>
+
+## Languages
+- <language_1>
+- <language_2>
+
+Rules:
+
+1. Output must be valid Markdown only — no JSON, code blocks, or extra formatting.
+2. If a field or section is missing in the resume, omit it entirely.
+3. Use clear, consistent Markdown headings and bullet points.
+4. Keep text factual and concise — do not paraphrase or summarize excessively.
+"""

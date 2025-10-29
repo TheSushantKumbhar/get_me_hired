@@ -1,3 +1,4 @@
+from typing import Required
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from livekit import api
@@ -8,6 +9,9 @@ from dotenv import load_dotenv
 
 from google import genai
 import lizard
+from pypdf.generic import TreeObject
+
+from parsing.resume import get_text_from_resume, parse_resume_from_text
 
 load_dotenv()
 
@@ -171,6 +175,29 @@ Instructions:
     except Exception as e:
         print(f"Error in analyzing code: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/parse", methods=["POST"])
+def parse_resume():
+    try:
+        data = request.get_json(silent=True)
+        if not data or "resume_path" not in data:
+            return jsonify({"error": "missing resume_path"}), 400
+
+        path = data["resume_path"]
+
+        text = get_text_from_resume(path=path)
+        if not text:
+            return jsonify({"error", "failed to extract text from resume"}), 500
+
+        parsed_resume = parse_resume_from_text(text=text)
+        if not parsed_resume:
+            return jsonify({"error": "LLM parsing failed"}), 500
+
+        return parsed_resume, 200
+    except Exception as e:
+        print(f"internal server error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/health", methods=["GET"])

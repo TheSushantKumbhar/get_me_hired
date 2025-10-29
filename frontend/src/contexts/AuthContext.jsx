@@ -36,18 +36,20 @@ export function AuthProvider({ children }) {
     fetchUser();
   }, []);
 
-  async function register(username, email, password) {
+  async function register(username, email, password, resume) {
     setLoading(true);
     setAuthError("");
     try {
+      const formData = new FormData();
+
+      formData.append("username", username);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("resume", resume);
+
       const res = await fetch("http://localhost:3000/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-        }),
+        body: formData,
       });
 
       const data = await res.json();

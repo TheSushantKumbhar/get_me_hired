@@ -5,6 +5,7 @@ livekit-plugins-langchain~=1.1
 livekit-agents[silero]~=1.2
 python-dotenv
 google-genai
+pypdf
 
 langgraph
 langchain
