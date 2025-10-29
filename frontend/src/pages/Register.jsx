@@ -17,7 +17,7 @@ function Register() {
       try {
         await register(username, email, password, resume);
       } finally {
-        navigate("/");
+        navigate(`/profile/${username}`);
       }
     } catch (err) {
       alert(err.message);
