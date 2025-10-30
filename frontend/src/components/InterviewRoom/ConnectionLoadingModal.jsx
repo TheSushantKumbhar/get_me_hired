@@ -6,7 +6,7 @@ const ConnectionLoadingModal = ({ isVisible }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8 max-w-md w-full mx-4 animate-fadeIn">
+      <div className="bg-black rounded-2xl shadow-2xl border border-gray-700 p-8 max-w-md w-full mx-4 animate-fadeIn">
         {/* Header */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">
