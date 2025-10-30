@@ -397,7 +397,7 @@ const VideoPanel = ({
         <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center z-20">
           {/* Participants Count */}
           <div className={`px-2 py-3 ml-1 rounded-lg font-bold shadow-lg text-lg ${
-            numPeople === 1 ? "bg-base-200 text-white" : "bg-red-600 text-white"
+            numPeople === 1 ? "bg-base-200 text-white" : "bg-base-100 text-white"
           }`}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">👤</span>
