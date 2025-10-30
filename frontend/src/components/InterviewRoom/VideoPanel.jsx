@@ -396,8 +396,8 @@ const VideoPanel = ({
       {hasVideo && isModelLoaded && (
         <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center z-20">
           {/* Participants Count */}
-          <div className={`px-6 py-3 rounded-lg font-bold shadow-lg text-lg ${
-            numPeople === 1 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+          <div className={`px-2 py-3 ml-1 rounded-lg font-bold shadow-lg text-lg ${
+            numPeople === 1 ? "bg-base-200 text-white" : "bg-red-600 text-white"
           }`}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">👤</span>
@@ -409,10 +409,10 @@ const VideoPanel = ({
           </div>
 
           {/* Eye Movement Count */}
-          <div className={`px-6 py-3 rounded-lg font-bold shadow-lg text-lg ${
-            eyeViolationCount === 0 ? "bg-green-600 text-white" : 
-            eyeViolationCount >= 5 ? "bg-red-600 text-white animate-pulse" : 
-            "bg-orange-600 text-white"
+          <div className={`px-6 py-3 mr-1 mb-1 rounded-lg font-bold shadow-lg text-lg ${
+            eyeViolationCount === 0 ? "bg-base-100 text-white" : 
+            eyeViolationCount >= 5 ? "bg-base-200 text-white " : 
+            "bg-base-300 text-white"
           }`}>
             <div className="flex items-center gap-3">
               <span className="text-2xl"></span>

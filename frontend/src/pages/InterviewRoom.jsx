@@ -893,6 +893,38 @@ const InterviewRoom = () => {
     }
   };
 
+  // useEffect(() => {
+  //   if (!isConnected || isDisconnectingRef.current) {
+  //     return;
+  //   }
+
+  //   if (violationTimeoutRef.current) {
+  //     clearTimeout(violationTimeoutRef.current);
+  //     violationTimeoutRef.current = null;
+  //   }
+
+  //   if (participantViolationCount > 1) {
+  //     alert(
+  //       `VIOLATION DETECTED!\n\nMultiple participants detected on screen (${participantViolationCount}).\n\nOnly 1 participant is allowed during the interview.\n\nYou will be disconnected in 5 seconds.`,
+  //     );
+
+  //     violationTimeoutRef.current = setTimeout(() => {
+  //       alert("Interview terminated due to multiple participants violation.");
+  //       disconnectFromRoom();
+  //     }, 1000);
+  //   }
+
+  //   return () => {
+  //     if (violationTimeoutRef.current) {
+  //       clearTimeout(violationTimeoutRef.current);
+  //       violationTimeoutRef.current = null;
+  //     }
+  //   };
+  // }, [participantViolationCount, isConnected]);
+
+  <Toaster position="top-center" />
+  
+  // In your useEffect
   useEffect(() => {
     if (!isConnected || isDisconnectingRef.current) {
       return;
@@ -904,12 +936,23 @@ const InterviewRoom = () => {
     }
 
     if (participantViolationCount > 1) {
-      alert(
-        `VIOLATION DETECTED!\n\nMultiple participants detected on screen (${participantViolationCount}).\n\nOnly 1 participant is allowed during the interview.\n\nYou will be disconnected in 5 seconds.`,
+      toast.error(
+        ` Multiple participants detected (${participantViolationCount}).\nOnly 1 participant allowed.\n\nDisconnecting in 5 seconds...`,
+        {
+          duration: 2000,
+          style: {
+            background: '#ef4444',
+            color: '#fff',
+            fontSize: '16px',
+            fontWeight: '600',
+            padding: '16px',
+            maxWidth: '500px',
+          },
+        }
       );
 
       violationTimeoutRef.current = setTimeout(() => {
-        alert("Interview terminated due to multiple participants violation.");
+        toast.error('Interview terminated due to violation.');
         disconnectFromRoom();
       }, 2000);
     }
