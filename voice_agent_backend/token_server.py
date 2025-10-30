@@ -1,4 +1,5 @@
 from typing import Required
+from annotated_types import IsInfinite
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from livekit import api
@@ -11,6 +12,7 @@ from google import genai
 import lizard
 from pypdf.generic import TreeObject
 
+from llm.feedback_chain import generate_pairs, get_feedback, retrieve_context
 from parsing.resume import get_text_from_resume, parse_resume_from_text
 
 load_dotenv()
@@ -205,6 +207,30 @@ def parse_resume():
     except Exception as e:
         print(f"internal server error: {e}")
         return jsonify({"error": f"Internal server error\n {e}"}), 500
+
+
+@app.route("/feedback", methods=["POST"])
+def generate_feedback():
+    data = request.get_json(silent=True)
+    if not data or "transcript" not in data:
+        return jsonify({"error": "missing transcript"}), 400
+
+    transcript = data["transcript"]
+
+    cleaned_transcript = [
+        {
+            "speaker": item.get("speaker", "Unknown"),
+            "text": item.get("text", "").strip(),
+        }
+        for item in transcript
+        if isinstance(item, dict)
+    ]
+
+    qa_pairs = generate_pairs(cleaned_transcript=cleaned_transcript)
+    context_qa_pairs = retrieve_context(qa_pairs=qa_pairs)
+    response = get_feedback(context_qa_pairs=context_qa_pairs)
+
+    return jsonify({"len": len(qa_pairs), "feedback": response}), 200
 
 
 @app.route("/health", methods=["GET"])
