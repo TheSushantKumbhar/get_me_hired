@@ -5,8 +5,24 @@ function JobModal({ job }) {
   const darkTheme = useTheme();
   const navigate = useNavigate();
 
-  const handleConfirm = () => {
-    // Pass job data through navigation state
+  const handleConfirm = async () => {
+    try {
+      // Request fullscreen mode
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        // Safari support
+        await elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        // IE11 support
+        await elem.msRequestFullscreen();
+      }
+    } catch (error) {
+      console.error("Error entering fullscreen:", error);
+    }
+
+    // Navigate to interview page
     navigate(`/interview/${job._id}`, {
       state: {
         jobData: {

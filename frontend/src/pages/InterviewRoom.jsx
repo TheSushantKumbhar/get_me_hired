@@ -656,6 +656,61 @@ const InterviewRoom = () => {
     }
   };
 
+  // const disconnectFromRoom = async () => {
+  //   if (!roomRef.current || isDisconnectingRef.current) {
+  //     return;
+  //   }
+
+  //   try {
+  //     isDisconnectingRef.current = true;
+  //     const room = roomRef.current;
+  //     roomRef.current = null;
+
+  //     if (violationTimeoutRef.current) {
+  //       clearTimeout(violationTimeoutRef.current);
+  //       violationTimeoutRef.current = null;
+  //     }
+  //     if (eyeViolationTimeoutRef.current) {
+  //       clearTimeout(eyeViolationTimeoutRef.current);
+  //       eyeViolationTimeoutRef.current = null;
+  //     }
+  //     if (avatarVideoTimeoutRef.current) {
+  //       clearTimeout(avatarVideoTimeoutRef.current);
+  //       avatarVideoTimeoutRef.current = null;
+  //     }
+
+  //     cleanupResources();
+  //     await room.disconnect();
+
+  //     setIsConnected(false);
+  //     setIsAgentSpeaking(false);
+  //     setHasVideo(false);
+  //     setIsVideoOn(false);
+  //     setVideoTrack(null);
+  //     setStatus("Disconnected");
+  //     setIsConnecting(false);
+  //     currentAgentSegmentRef.current = null;
+
+  //     navigate("/feedback", {
+  //       state: {
+  //         transcript: transcript,
+  //         roomId: roomId,
+  //         interviewName: interviewName,
+  //         duration: "Session ended",
+  //       },
+  //     });
+
+  //     setTranscript([]);
+  //     isConnectingRef.current = false;
+  //   } catch (error) {
+  //     console.error("Error during disconnect:", error);
+  //     roomRef.current = null;
+  //     isConnectingRef.current = false;
+  //     isDisconnectingRef.current = false;
+  //   }
+  // };
+
+
   const disconnectFromRoom = async () => {
     if (!roomRef.current || isDisconnectingRef.current) {
       return;
@@ -681,6 +736,26 @@ const InterviewRoom = () => {
 
       cleanupResources();
       await room.disconnect();
+
+      // Exit fullscreen mode
+      if (document.fullscreenElement) {
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            // Safari support
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            // Firefox support
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            // IE11 support
+            await document.msExitFullscreen();
+          }
+        } catch (error) {
+          console.error("Error exiting fullscreen:", error);
+        }
+      }
 
       setIsConnected(false);
       setIsAgentSpeaking(false);
@@ -709,6 +784,7 @@ const InterviewRoom = () => {
       isDisconnectingRef.current = false;
     }
   };
+
 
   const handleMuteToggle = async () => {
     if (roomRef.current) {
@@ -867,10 +943,72 @@ const InterviewRoom = () => {
   }, []);
 
   return (
+    // <>
+    //   <Toaster />
+    //   <ConnectionLoadingModal isVisible={isConnecting} />
+    //   <div className="h-screen bg-base-300 text-white flex flex-col overflow-hidden">
+    //     <Header
+    //       interviewName={interviewName}
+    //       isRecording={isRecording}
+    //       onRecordToggle={toggleRecording}
+    //       isConnected={isConnected}
+    //       onDisconnect={disconnectFromRoom}
+    //       onConnect={connectToRoom}
+    //       codeValue={codeValue}
+    //       setCodeValue={setCodeValue}
+    //       output={output}
+    //       setOutput={setOutput}
+    //       handleCodeSubmit={handleCodeSubmit}
+    //       language={language}
+    //       setLanguage={setLanguage}
+    //       analysis={analysis}
+    //       loadingAnalysis={loadingAnalysis}
+    //     />
+
+    //     <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
+    //       <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
+    //         <TranscriptPanel
+    //           transcript={transcript}
+    //           isAgentSpeaking={isAgentSpeaking}
+    //           onSendMessage={handleSendMessage}
+    //           messageInputDisabled={!isConnected}
+    //         />
+    //       </div>
+
+    //       <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
+    //         <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+    //           <div className="w-full max-w-[400px] aspect-[10/7]">
+    //             <AvatarVideo videoTrack={videoTrack} />
+    //           </div>
+    //         </div>
+
+    //         <VideoPanel
+    //           isConnected={isConnected}
+    //           videoRef={videoRef}
+    //           hasVideo={hasVideo}
+    //           onParticipantCountChange={setParticipantViolationCount}
+    //           onEyeViolationCountChange={setEyeMovementViolations}
+    //         />
+
+    //         <ControlButtons
+    //           isMuted={isMuted}
+    //           isVideoOn={isVideoOn}
+    //           onMuteToggle={handleMuteToggle}
+    //           onVideoToggle={handleVideoToggle}
+    //           disabled={!isConnected}
+    //           onMicChange={handleMicChange}
+    //           currentMicId={currentMicId}
+    //           room={roomRef.current}
+    //           isAgentSpeaking={isAgentSpeaking}
+    //         />
+    //       </div>
+    //     </div>
+    //   </div>
+    // </>
     <>
       <Toaster />
       <ConnectionLoadingModal isVisible={isConnecting} />
-      <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
+      <div className="h-screen bg-base-300 text-white flex flex-col overflow-hidden">
         <Header
           interviewName={interviewName}
           isRecording={isRecording}
@@ -889,8 +1027,9 @@ const InterviewRoom = () => {
           loadingAnalysis={loadingAnalysis}
         />
 
-        <div className="flex-1 flex gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
-          <div className="w-full lg:w-[55vw] xl:w-[900px] flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 lg:gap-5 xl:gap-6 p-3 md:p-4 lg:p-5 xl:p-6 overflow-hidden">
+          {/* Left Panel - Transcript */}
+          <div className="w-full lg:w-[58%] xl:w-[60%] 2xl:w-[62%] flex flex-col min-w-0">
             <TranscriptPanel
               transcript={transcript}
               isAgentSpeaking={isAgentSpeaking}
@@ -899,13 +1038,16 @@ const InterviewRoom = () => {
             />
           </div>
 
-          <div className="flex-1 flex flex-col gap-2 sm:gap-3 md:gap-4 overflow-y-auto min-w-0">
-            <div className="flex justify-center items-center bg-black rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
-              <div className="w-full max-w-[400px] aspect-[10/7]">
+          {/* Right Panel - Video and Controls */}
+          <div className="w-full lg:w-[42%] xl:w-[40%] 2xl:w-[38%] flex flex-col gap-3 md:gap-4 lg:gap-5 overflow-y-auto min-w-0">
+            {/* Avatar Video */}
+            <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
+              <div className="w-full max-w-full lg:max-w-[450px] xl:max-w-[500px] aspect-[10/7]">
                 <AvatarVideo videoTrack={videoTrack} />
               </div>
             </div>
 
+            {/* User Video Panel */}
             <VideoPanel
               isConnected={isConnected}
               videoRef={videoRef}
@@ -914,6 +1056,7 @@ const InterviewRoom = () => {
               onEyeViolationCountChange={setEyeMovementViolations}
             />
 
+            {/* Control Buttons */}
             <ControlButtons
               isMuted={isMuted}
               isVideoOn={isVideoOn}
@@ -929,6 +1072,7 @@ const InterviewRoom = () => {
         </div>
       </div>
     </>
+
   );
 };
 
