@@ -204,7 +204,7 @@ def parse_resume():
         return parsed_resume, 200, {"Content-Type:": "text/markdown; charset=uft-8"}
     except Exception as e:
         print(f"internal server error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": f"Internal server error\n {e}"}), 500
 
 
 @app.route("/health", methods=["GET"])
