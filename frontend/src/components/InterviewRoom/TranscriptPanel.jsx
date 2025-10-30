@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // Enhanced hook for real-time streaming text (subtitle-like)
 const useStreamingText = (text, isStreaming = false, speed = 20) => {
@@ -12,7 +14,6 @@ const useStreamingText = (text, isStreaming = false, speed = 20) => {
       return;
     }
 
-    // If it's a streaming message (interim), show character by character
     if (isStreaming) {
       setIsActive(true);
       let index = 0;
@@ -30,7 +31,6 @@ const useStreamingText = (text, isStreaming = false, speed = 20) => {
 
       return () => clearInterval(timer);
     } else {
-      // For final messages, show immediately
       setDisplayedText(text);
       setIsActive(false);
     }
@@ -39,13 +39,53 @@ const useStreamingText = (text, isStreaming = false, speed = 20) => {
   return { displayedText, isActive };
 };
 
-// Message component with streaming effect
+// Function to detect and parse code blocks from text
+const parseMessageContent = (text) => {
+  // Updated regex to handle both ``````
+  const codeBlockRegex = /``````/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    // Add text before code block
+    if (match.index > lastIndex) {
+      parts.push({
+        type: "text",
+        content: text.slice(lastIndex, match.index),
+      });
+    }
+
+    // Add code block (with or without language identifier)
+    parts.push({
+      type: "code",
+      language: match[1] || "python", // Default to python if no language specified
+      content: match[2].trim(),
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({
+      type: "text",
+      content: text.slice(lastIndex),
+    });
+  }
+
+  return parts.length > 0 ? parts : [{ type: "text", content: text }];
+};
+
+// Message component with streaming effect and code highlighting
 const MessageBubble = ({ msg, isLatestStreaming = false }) => {
   const { displayedText, isActive } = useStreamingText(
     msg.text,
     isLatestStreaming && !msg.isFinal,
     msg.speaker === "Agent" ? 15 : 25,
   );
+
+  const contentParts = parseMessageContent(displayedText);
 
   return (
     <div
@@ -66,14 +106,40 @@ const MessageBubble = ({ msg, isLatestStreaming = false }) => {
             <span className="ml-2 text-xs text-green-300">● LIVE</span>
           )}
         </p>
-        <p className="text-white text-sm leading-relaxed break-words overflow-wrap-anywhere">
-          {displayedText}
+        
+        <div className="text-white text-sm leading-relaxed break-words overflow-wrap-anywhere">
+          {contentParts.map((part, idx) => {
+            if (part.type === "code") {
+              return (
+                <div key={idx} className="my-2 rounded-lg overflow-hidden">
+                  <SyntaxHighlighter
+                    language={part.language}
+                    style={vscDarkPlus}
+                    customStyle={{
+                      margin: 0,
+                      borderRadius: "0.5rem",
+                      fontSize: "0.875rem",
+                      padding: "1rem",
+                    }}
+                    showLineNumbers={true}
+                  >
+                    {part.content}
+                  </SyntaxHighlighter>
+                </div>
+              );
+            }
+            return (
+              <span key={idx} className="whitespace-pre-wrap">
+                {part.content}
+              </span>
+            );
+          })}
           {isActive && (
             <span className="animate-pulse ml-1 text-gray-300 font-bold">
               |
             </span>
           )}
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -93,7 +159,6 @@ const TranscriptPanel = ({
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
-  // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -102,7 +167,6 @@ const TranscriptPanel = ({
     }
   }, [message]);
 
-  // Filter out system messages - only show Agent and You
   const filteredTranscript = transcript.filter(
     (msg) => msg.speaker === "You" || msg.speaker === "Agent",
   );
@@ -111,7 +175,6 @@ const TranscriptPanel = ({
     if (message.trim() && !messageInputDisabled && onSendMessage) {
       onSendMessage(message);
       setMessage("");
-      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -127,7 +190,6 @@ const TranscriptPanel = ({
 
   return (
     <div className="flex flex-col h-full border-2 border-gray-700 rounded-lg bg-black">
-      {/* Messages Section */}
       <div className="flex-1 p-4 overflow-y-auto">
         {filteredTranscript.length === 0 ? (
           <div className="h-full flex items-center justify-center">
@@ -157,7 +219,6 @@ const TranscriptPanel = ({
         )}
       </div>
 
-      {/* Message Input Section */}
       <div className="px-4 pb-4">
         <div className="relative flex items-end bg-black rounded-xl border-2 border-gray-700 focus-within:border-gray-500 transition-colors shadow-lg">
           <textarea

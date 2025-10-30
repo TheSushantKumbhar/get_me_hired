@@ -10,13 +10,13 @@ function JobCard({ job }) {
   return (
     <div className="card bg-base-100 w-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 font-work-sans border border-base-300">
 
-      <figure className="h-[12vh] overflow-hidden">
+      {/* <figure className="h-[12vh] overflow-hidden">
         <img
           src="https://img.freepik.com/premium-vector/business-meeting-discussion-man-woman-office-table-vector-illustration_107641-425.jpg?semt=ais_hybrid&w=740&q=80"
           alt="Company"
           className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
         />
-      </figure>
+      </figure> */}
       <div className="card-body p-6">
         <div className="mb-2">
           <span className="badge badge-primary badge-sm mb-2">{job.type || "Full-time"}</span>

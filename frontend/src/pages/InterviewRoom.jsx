@@ -5,21 +5,24 @@ import TranscriptPanel from "../components/InterviewRoom/TranscriptPanel";
 import VideoPanel from "../components/InterviewRoom/VideoPanel";
 import ControlButtons from "../components/InterviewRoom/ControlButtons";
 import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
+import ConnectionLoadingModal from "../components/InterviewRoom/ConnectionLoadingModal";
 import toast, { Toaster } from "react-hot-toast";
 import { io } from "socket.io-client";
 
 const InterviewRoom = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const job = location.state?.jobData;
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState([]);
   const [roomId, setRoomId] = useState("");
   const [status, setStatus] = useState("Disconnected");
-  const [interviewName] = useState("AI Interview Session");
+  const [interviewName, setInterviewName] = useState("AI Interview Session");
   const [hasVideo, setHasVideo] = useState(false);
   const [currentMicId, setCurrentMicId] = useState("");
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
@@ -28,7 +31,7 @@ const InterviewRoom = () => {
   const [codeValue, setCodeValue] = useState("");
   const [output, setOutput] = useState("");
 
-  // NEW: Violation tracking states
+  // Violation tracking states
   const [participantViolationCount, setParticipantViolationCount] = useState(0);
   const [eyeMovementViolations, setEyeMovementViolations] = useState(0);
   const [language, setLanguage] = useState(
@@ -36,11 +39,12 @@ const InterviewRoom = () => {
   );
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState("");
-  // const handleCodeSubmit = () => {
-  //   // send code to voice agent from here.
-  //   console.log(codeValue);
-  // };
-  //
+
+  useEffect(() => {
+    if (job?.title) {
+      setInterviewName(job.title);
+    }
+  }, [job]);
 
   const roomID = "room-001";
   useEffect(() => {
@@ -48,17 +52,13 @@ const InterviewRoom = () => {
 
     socket.on("connect", () => {
       console.log("Connected to server:", socket.id);
-
-      // Join the room
       socket.emit("join_room", { roomId: roomID });
-
-      // Log that we joined
       console.log(`[+] Joined room: ${roomID}`);
     });
 
     socket.on("violation_detected", (data) => {
       console.log("Violation detected:", data);
-      alert("violation detected please close any retricted software");
+      alert("violation detected please close any restricted software");
     });
 
     return () => {
@@ -67,7 +67,6 @@ const InterviewRoom = () => {
   }, []);
 
   useEffect(() => {
-    // Detects tab switches within browser
     const handleVisibilityChange = () => {
       if (document.hidden) {
         console.log("User switched to different browser tab");
@@ -75,13 +74,11 @@ const InterviewRoom = () => {
       }
     };
 
-    // Detects Alt+Tab (switching to different application)
     const handleBlur = () => {
       toast.error("do not switch tabs during interview");
       console.log("User switched to different window/application (Alt+Tab)");
     };
 
-    // Add both listeners
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleBlur);
 
@@ -98,7 +95,6 @@ const InterviewRoom = () => {
       return;
     }
 
-    // Send formatted code message
     const formattedMessage = `Here is my code solution:\n\`\`\`\n${codeValue}\n\`\`\``;
     handleSendMessage(formattedMessage);
     console.log("Code sent to agent:", codeValue);
@@ -116,7 +112,7 @@ const InterviewRoom = () => {
     });
 
     if (!res.ok) {
-      console.error("fuck yourself");
+      console.error("Analysis request failed");
     }
 
     const result = await res.json();
@@ -133,7 +129,14 @@ const InterviewRoom = () => {
   const animationFrameIdsRef = useRef([]);
   const isConnectingRef = useRef(false);
 
-  // NEW: Violation timeout refs
+  // Track if avatar has joined
+  const avatarJoinedRef = useRef(false);
+  const avatarVideoTimeoutRef = useRef(null);
+
+  // NEW: Track current agent segment for live streaming
+  const currentAgentSegmentRef = useRef(null);
+  const agentSpeechDetectionTimeoutRef = useRef(null);
+
   const violationTimeoutRef = useRef(null);
   const eyeViolationTimeoutRef = useRef(null);
   const isDisconnectingRef = useRef(false);
@@ -142,6 +145,16 @@ const InterviewRoom = () => {
     if (agentSpeakingTimeoutRef.current) {
       clearTimeout(agentSpeakingTimeoutRef.current);
       agentSpeakingTimeoutRef.current = null;
+    }
+
+    if (avatarVideoTimeoutRef.current) {
+      clearTimeout(avatarVideoTimeoutRef.current);
+      avatarVideoTimeoutRef.current = null;
+    }
+
+    if (agentSpeechDetectionTimeoutRef.current) {
+      clearTimeout(agentSpeechDetectionTimeoutRef.current);
+      agentSpeechDetectionTimeoutRef.current = null;
     }
 
     animationFrameIdsRef.current.forEach((id) => {
@@ -198,10 +211,20 @@ const InterviewRoom = () => {
         },
       ];
     });
+
+    // Reset current segment tracking when final transcript is received
+    if (speaker === "Agent" && currentAgentSegmentRef.current === segmentId) {
+      currentAgentSegmentRef.current = null;
+    }
   };
 
   const addInterimTranscript = (speaker, text, segmentId) => {
     if (!text || !text.trim()) return;
+
+    // Track current agent segment for streaming
+    if (speaker === "Agent") {
+      currentAgentSegmentRef.current = segmentId;
+    }
 
     setTranscript((prev) => {
       const filtered = prev.filter((msg) => msg.segmentId !== segmentId);
@@ -226,7 +249,9 @@ const InterviewRoom = () => {
 
     try {
       isConnectingRef.current = true;
+      setIsConnecting(true);
       setStatus("Connecting...");
+      avatarJoinedRef.current = false; // Reset avatar joined flag
 
       const jobData = location.state?.jobData || {
         companyName: "Default Company",
@@ -293,6 +318,15 @@ const InterviewRoom = () => {
                   `Setting video track from existing participant: ${participant.identity}`,
                 );
                 setVideoTrack(publication.videoTrack);
+                
+                // If avatar already present, close modal after short delay
+                if (!avatarJoinedRef.current) {
+                  avatarJoinedRef.current = true;
+                  avatarVideoTimeoutRef.current = setTimeout(() => {
+                    setIsConnecting(false);
+                    console.log("Modal closed - Avatar video ready");
+                  }, 1000);
+                }
               }
             }
           });
@@ -307,8 +341,8 @@ const InterviewRoom = () => {
                 reader.info.attributes["lk.transcribed_track_id"] != null;
               const isFinal =
                 reader.info.attributes["lk.transcription_final"] === "true";
-              const segmentId = reader.info.attributes["lk.segment_id"] || 
-                                `segment-${Date.now()}-${Math.random()}`;
+              const segmentId = reader.info.attributes["lk.segment_id"] ||
+                `segment-${Date.now()}-${Math.random()}`;
 
               console.log("=== Transcription Received ===");
               console.log("Participant Identity:", participantInfo.identity);
@@ -337,18 +371,20 @@ const InterviewRoom = () => {
                 console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
 
                 if (speaker === "Agent") {
+                  // Set agent speaking immediately when interim or final transcript received
                   setIsAgentSpeaking(true);
 
+                  // Clear any existing timeout
                   if (agentSpeakingTimeoutRef.current) {
                     clearTimeout(agentSpeakingTimeoutRef.current);
                   }
 
-                  agentSpeakingTimeoutRef.current = setTimeout(
-                    () => {
+                  // Only set timeout to turn off speaking if this is final
+                  if (isFinal) {
+                    agentSpeakingTimeoutRef.current = setTimeout(() => {
                       setIsAgentSpeaking(false);
-                    },
-                    isFinal ? 1000 : 2000
-                  );
+                    }, 800);
+                  }
                 }
 
                 const shouldBeFinal = isFinal || (isAgent && !isTranscription);
@@ -361,8 +397,56 @@ const InterviewRoom = () => {
                   addInterimTranscript(speaker, message, segmentId);
                 }
               } else {
-                console.log(" Transcription skipped - empty message");
+                console.log("Transcription skipped - empty message");
               }
+
+              // if (message.trim()) {
+              //   const identity = participantInfo.identity.toLowerCase();
+
+              //   const isAgent =
+              //     identity.includes("agent") ||
+              //     identity.includes("ai") ||
+              //     identity.includes("voice") ||
+              //     identity.includes("assistant") ||
+              //     identity.includes("interviewer") ||
+              //     identity.includes("avatar") ||
+              //     identity.includes("simli");
+
+              //   const speaker = isAgent ? "Agent" : "You";
+
+              //   console.log(`Detected speaker: ${speaker}`);
+              //   console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+
+              //   if (speaker === "Agent") {
+              //     // Set agent speaking for both interim and final
+              //     setIsAgentSpeaking(true);
+
+              //     // Clear any existing timeout
+              //     if (agentSpeakingTimeoutRef.current) {
+              //       clearTimeout(agentSpeakingTimeoutRef.current);
+              //     }
+
+              //     // Set timeout to turn off speaking state after final transcript
+              //     if (isFinal) {
+              //       agentSpeakingTimeoutRef.current = setTimeout(() => {
+              //         setIsAgentSpeaking(false);
+              //       }, 1500);
+              //     }
+              //   }
+
+              //   // Show interim transcripts as streaming for Agent
+              //   if (!isFinal && speaker === "Agent") {
+              //     console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
+              //     addInterimTranscript(speaker, message, segmentId);
+              //   } else {
+              //     // Show final transcripts or user messages immediately
+              //     console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
+              //     addFinalTranscript(speaker, message, segmentId);
+              //   }
+              // } else {
+              //   console.log("Transcription skipped - empty message");
+              // }
+        
             } catch (error) {
               console.error("Error processing transcription:", error);
             }
@@ -377,15 +461,35 @@ const InterviewRoom = () => {
         setVideoTrack(null);
         setStatus("Disconnected");
         setIsAgentSpeaking(false);
+        setIsConnecting(false);
         roomRef.current = null;
         isConnectingRef.current = false;
         isDisconnectingRef.current = false;
+        currentAgentSegmentRef.current = null;
       });
 
       room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
         console.log(`=== Participant Joined ===`);
         console.log(`Identity: "${participant.identity}"`);
         console.log(`Name: "${participant.name}"`);
+
+        // Check if this is the avatar/agent joining
+        const identity = participant.identity.toLowerCase();
+        if (
+          identity.includes("agent") ||
+          identity.includes("ai") ||
+          identity.includes("avatar") ||
+          identity.includes("interviewer")
+        ) {
+          console.log("Avatar/Agent participant detected!");
+          avatarJoinedRef.current = true;
+
+          // Wait a bit for video track to be ready, then close modal
+          avatarVideoTimeoutRef.current = setTimeout(() => {
+            setIsConnecting(false);
+            console.log("Modal closed - Avatar ready");
+          }, 1500);
+        }
       });
 
       room.on(LiveKit.RoomEvent.TrackPublished, (publication, participant) => {
@@ -428,6 +532,7 @@ const InterviewRoom = () => {
                 );
                 const analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
                 source.connect(analyser);
 
                 const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -439,8 +544,19 @@ const InterviewRoom = () => {
                   const average =
                     dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-                  if (average > 10) {
+                  // More sensitive threshold for real-time detection
+                  if (average > 5) {
                     setIsAgentSpeaking(true);
+                    
+                    // Clear existing timeout
+                    if (agentSpeechDetectionTimeoutRef.current) {
+                      clearTimeout(agentSpeechDetectionTimeoutRef.current);
+                    }
+                    
+                    // Set timeout to turn off after silence
+                    agentSpeechDetectionTimeoutRef.current = setTimeout(() => {
+                      setIsAgentSpeaking(false);
+                    }, 500);
                   }
 
                   const frameId = requestAnimationFrame(checkAudioLevel);
@@ -466,9 +582,18 @@ const InterviewRoom = () => {
               identity.includes("interviewer")
             ) {
               console.log(
-                ` Setting AGENT video track from: ${participant.identity}`,
+                `Setting AGENT video track from: ${participant.identity}`,
               );
               setVideoTrack(track);
+
+              // Avatar video track subscribed - close modal after short delay
+              if (!avatarJoinedRef.current) {
+                avatarJoinedRef.current = true;
+                avatarVideoTimeoutRef.current = setTimeout(() => {
+                  setIsConnecting(false);
+                  console.log("Modal closed - Avatar video track subscribed");
+                }, 1000);
+              }
             } else {
               console.log(`Setting USER video track from: ${participant.identity}`);
               if (videoRef.current) {
@@ -511,6 +636,7 @@ const InterviewRoom = () => {
     } catch (error) {
       console.error("Connection error:", error);
       setStatus("Error: " + error.message);
+      setIsConnecting(false);
       cleanupResources();
       roomRef.current = null;
       isConnectingRef.current = false;
@@ -527,7 +653,6 @@ const InterviewRoom = () => {
       const room = roomRef.current;
       roomRef.current = null;
 
-      // Clear all violation timeouts
       if (violationTimeoutRef.current) {
         clearTimeout(violationTimeoutRef.current);
         violationTimeoutRef.current = null;
@@ -535,6 +660,10 @@ const InterviewRoom = () => {
       if (eyeViolationTimeoutRef.current) {
         clearTimeout(eyeViolationTimeoutRef.current);
         eyeViolationTimeoutRef.current = null;
+      }
+      if (avatarVideoTimeoutRef.current) {
+        clearTimeout(avatarVideoTimeoutRef.current);
+        avatarVideoTimeoutRef.current = null;
       }
 
       cleanupResources();
@@ -546,6 +675,8 @@ const InterviewRoom = () => {
       setIsVideoOn(false);
       setVideoTrack(null);
       setStatus("Disconnected");
+      setIsConnecting(false);
+      currentAgentSegmentRef.current = null;
 
       navigate("/feedback", {
         state: {
@@ -673,7 +804,6 @@ const InterviewRoom = () => {
     }
   };
 
-  // NEW: Monitor participant violations and auto-disconnect
   useEffect(() => {
     if (!isConnected || isDisconnectingRef.current) {
       return;
@@ -711,6 +841,9 @@ const InterviewRoom = () => {
       if (eyeViolationTimeoutRef.current) {
         clearTimeout(eyeViolationTimeoutRef.current);
       }
+      if (avatarVideoTimeoutRef.current) {
+        clearTimeout(avatarVideoTimeoutRef.current);
+      }
       cleanupResources();
       if (roomRef.current) {
         roomRef.current
@@ -723,6 +856,7 @@ const InterviewRoom = () => {
   return (
     <>
       <Toaster />
+      <ConnectionLoadingModal isVisible={isConnecting} />
       <div className="h-screen bg-base text-white flex flex-col overflow-hidden">
         <Header
           interviewName={interviewName}
@@ -759,28 +893,28 @@ const InterviewRoom = () => {
               </div>
             </div>
 
-          <VideoPanel
-            isConnected={isConnected}
-            videoRef={videoRef}
-            hasVideo={hasVideo}
-            onParticipantCountChange={setParticipantViolationCount}
-            onEyeViolationCountChange={setEyeMovementViolations}
-          />
+            <VideoPanel
+              isConnected={isConnected}
+              videoRef={videoRef}
+              hasVideo={hasVideo}
+              onParticipantCountChange={setParticipantViolationCount}
+              onEyeViolationCountChange={setEyeMovementViolations}
+            />
 
-          <ControlButtons
-            isMuted={isMuted}
-            isVideoOn={isVideoOn}
-            onMuteToggle={handleMuteToggle}
-            onVideoToggle={handleVideoToggle}
-            disabled={!isConnected}
-            onMicChange={handleMicChange}
-            currentMicId={currentMicId}
-            room={roomRef.current}
-            isAgentSpeaking={isAgentSpeaking}
-          />
+            <ControlButtons
+              isMuted={isMuted}
+              isVideoOn={isVideoOn}
+              onMuteToggle={handleMuteToggle}
+              onVideoToggle={handleVideoToggle}
+              disabled={!isConnected}
+              onMicChange={handleMicChange}
+              currentMicId={currentMicId}
+              room={roomRef.current}
+              isAgentSpeaking={isAgentSpeaking}
+            />
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 };
