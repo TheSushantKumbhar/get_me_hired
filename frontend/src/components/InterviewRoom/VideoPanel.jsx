@@ -350,8 +350,8 @@ const VideoPanel = ({
   }, [videoRef, hasVideo, isModelLoaded, onParticipantCountChange, onEyeViolationCountChange, eyeViolationCount]);
 
   return (
-    <div className="border-2 border-gray-700 rounded-lg bg-black overflow-hidden h-[280px] p-3 relative">
-      <div className="w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl border-2 border-gray-600 relative">
+    <div className="rounded-lg bg-base-200 overflow-hidden h-[320px] p-3 relative">
+      <div className="w-full h-full bg-base-300 rounded-lg overflow-hidden shadow-2xl relative">
         <video
           ref={videoRef}
           autoPlay
@@ -368,12 +368,12 @@ const VideoPanel = ({
 
         {/* Placeholder */}
         {!hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <div className="absolute inset-0 flex items-center justify-center bg-base-300">
             <div className="text-center text-gray-400">
               <div className="text-6xl mb-3"></div>
-              <p className="text-lg font-bold">AI Eye Tracking + Proctoring</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {!isConnected ? "Connect to start" : !isModelLoaded ? "Loading models..." : "Waiting for video..."}
+              {/* <p className="text-lg font-bold">AI Eye Tracking + Proctoring</p> */}
+              <p className="text-xl text-gray-500 mt-2">
+                {!isConnected ? "Start Video" : !isModelLoaded ? "Loading models..." : "Waiting for video..."}
               </p>
             </div>
           </div>

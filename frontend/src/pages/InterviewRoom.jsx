@@ -1008,7 +1008,7 @@ const InterviewRoom = () => {
     <>
       <Toaster />
       <ConnectionLoadingModal isVisible={isConnecting} />
-      <div className="h-screen bg-base-300 text-white flex flex-col overflow-hidden">
+      <div className="h-screen bg-base-100 text-white flex flex-col overflow-hidden">
         <Header
           interviewName={interviewName}
           isRecording={isRecording}
@@ -1041,7 +1041,7 @@ const InterviewRoom = () => {
           {/* Right Panel - Video and Controls */}
           <div className="w-full lg:w-[42%] xl:w-[40%] 2xl:w-[38%] flex flex-col gap-3 md:gap-4 lg:gap-5 overflow-y-auto min-w-0">
             {/* Avatar Video */}
-            <div className="flex justify-center items-center bg-black rounded-xl shadow-lg overflow-hidden">
+            <div className="flex justify-center items-center bg-base-300 rounded-xl shadow-lg overflow-hidden">
               <div className="w-full max-w-full lg:max-w-[450px] xl:max-w-[500px] aspect-[10/7]">
                 <AvatarVideo videoTrack={videoTrack} />
               </div>

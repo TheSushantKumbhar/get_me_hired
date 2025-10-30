@@ -51,7 +51,7 @@ const Header = ({
     //   </div>
     // </div>
 
-    <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-gray-700">
+    <div className="flex items-center justify-between px-6 py-4 bg-base-300">
   <div className="flex-1 max-w-[60%]">
     <CodeEditor
       codeValue={codeValue}
@@ -66,7 +66,7 @@ const Header = ({
     />
   </div>
 
-  <h1 className="text-xl font-medium text-white whitespace-nowrap mx-4">
+  <h1 className="text-xl font-medium text-grey-600 whitespace-nowrap mx-4">
     {interviewName}
   </h1>
 

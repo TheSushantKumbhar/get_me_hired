@@ -144,7 +144,7 @@ const ControlButtons = ({
   };
 
   return (
-    <div className="border-2 border-gray-700 rounded-lg bg-black p-2 sm:p-3 w-full">
+    <div className="rounded-lg bg-base-300 p-2 sm:p-3 w-full">
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         {/* Left: User Voice Audio Indicator - Responsive width */}
         <div className="flex items-center gap-1 sm:gap-1.5 min-w-[100px] sm:min-w-[120px] md:min-w-[140px] lg:min-w-[160px] xl:min-w-[180px] 2xl:min-w-[200px] h-8">
@@ -157,10 +157,10 @@ const ControlButtons = ({
             <button
               onClick={onMuteToggle}
               disabled={disabled}
-              className={`btn btn-sm h-10 sm:h-11 md:h-12 px-3 sm:px-3.5 md:px-4 rounded-lg border-2 transition-all ${
+              className={`btn btn-sm h-10 sm:h-11 md:h-12 px-3 sm:px-3.5 md:px-4 rounded-lg transition-all ${
                 isMuted
-                  ? 'bg-red-600 hover:bg-red-700 border-red-500 text-white'
-                  : 'bg-gray-800 hover:bg-gray-700 border-gray-600 text-white'
+                  ? 'bg-base-100 hover:bg-base-100 text-white'
+                  : 'bg-base-100 hover:bg-base-100 text-white'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
             >
@@ -176,7 +176,7 @@ const ControlButtons = ({
             <button
               onClick={() => setShowMicDropdown(!showMicDropdown)}
               disabled={disabled || isAgentSpeaking}
-              className={`btn btn-sm h-10 sm:h-11 md:h-12 px-2 sm:px-2.5 md:px-3 rounded-lg border-2 bg-gray-800 hover:bg-gray-700 border-gray-600 text-white transition-all ${
+              className={`btn btn-sm h-10 sm:h-11 md:h-12 px-2 sm:px-2.5 md:px-3 rounded-lg  bg-base-100 hover:bg-base-200  text-white transition-all ${
                 (disabled || isAgentSpeaking) ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               title={isAgentSpeaking ? "Cannot change mic while agent is speaking" : "Select microphone"}
@@ -188,15 +188,15 @@ const ControlButtons = ({
 
             {/* Microphone Dropdown - Responsive positioning */}
             {showMicDropdown && !disabled && !isAgentSpeaking && (
-              <div className="absolute bottom-full mb-2 right-0 w-56 sm:w-60 md:w-64 lg:w-72 bg-gray-900 border-2 border-gray-700 rounded-lg shadow-xl z-50 max-h-52 sm:max-h-60 md:max-h-64 overflow-y-auto">
+              <div className="absolute bottom-full mb-2 right-0 w-56 sm:w-60 md:w-64 lg:w-72 bg-base-300 rounded-lg shadow-xl z-50 max-h-52 sm:max-h-60 md:max-h-64 overflow-y-auto">
                 <div className="py-2">
                   <div className="px-3 sm:px-4 py-2 text-xs text-gray-400 font-semibold uppercase">
                     Select Microphone
                   </div>
                   <div
                     onClick={() => handleMicChange('')}
-                    className={`px-3 sm:px-4 py-2 hover:bg-gray-800 cursor-pointer transition-colors ${
-                      !currentMicId ? 'bg-gray-800 text-white' : 'text-gray-300'
+                    className={`px-3 sm:px-4 py-2 hover:bg-base-100 cursor-pointer transition-colors ${
+                      !currentMicId ? 'bg-base-100 text-white' : 'text-gray-300'
                     }`}
                   >
                     <div className="text-xs sm:text-sm">Default Microphone</div>
@@ -205,8 +205,8 @@ const ControlButtons = ({
                     <div
                       key={mic.deviceId}
                       onClick={() => handleMicChange(mic.deviceId)}
-                      className={`px-3 sm:px-4 py-2 hover:bg-gray-800 cursor-pointer transition-colors ${
-                        currentMicId === mic.deviceId ? 'bg-gray-800 text-white' : 'text-gray-300'
+                      className={`px-3 sm:px-4 py-2 hover:bg-base-100 cursor-pointer transition-colors ${
+                        currentMicId === mic.deviceId ? 'bg-base-100 text-white' : 'text-gray-300'
                       }`}
                     >
                       <div className="text-xs sm:text-sm truncate">
@@ -227,10 +227,10 @@ const ControlButtons = ({
         <button
           onClick={onVideoToggle}
           disabled={disabled}
-          className={`btn btn-sm h-10 sm:h-11 md:h-12 px-3 sm:px-3.5 md:px-4 rounded-lg border-2 transition-all ${
+          className={`btn btn-sm h-10 sm:h-11 md:h-12 px-3 sm:px-3.5 md:px-4 rounded-lg  transition-all ${
             isVideoOn
-              ? 'bg-gray-800 hover:bg-gray-700 border-gray-600 text-white'
-              : 'bg-red-600 hover:bg-red-700 border-red-500 text-white'
+              ? 'bg-base-100 hover:bg-base-200 text-white'
+              : 'bg-red-500 hover:bg-base-200 text-white'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
         >

@@ -92,8 +92,8 @@ const MessageBubble = ({ msg, isLatestStreaming = false }) => {
       className={`flex ${msg.speaker === "You" ? "justify-end" : "justify-start"} mb-4`}
     >
       <div
-        className={`border border-gray-600 max-w-[85%] sm:max-w-[80%] lg:max-w-[75%] ${
-          msg.speaker === "You" ? "bg-black" : "bg-black"
+        className={`max-w-[85%] sm:max-w-[80%] lg:max-w-[75%] ${
+          msg.speaker === "You" ? "bg-base-100" : "bg-base-100"
         } rounded-2xl px-4 py-3 relative break-words`}
       >
         <p
@@ -189,7 +189,7 @@ const TranscriptPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full border-2 border-gray-700 rounded-lg bg-black">
+    <div className="flex flex-col h-full rounded-lg bg-base-300">
       <div className="flex-1 p-4 overflow-y-auto">
         {filteredTranscript.length === 0 ? (
           <div className="h-full flex items-center justify-center">
@@ -220,7 +220,7 @@ const TranscriptPanel = ({
       </div>
 
       <div className="px-4 pb-4">
-        <div className="relative flex items-end bg-black rounded-xl border-2 border-gray-700 focus-within:border-gray-500 transition-colors shadow-lg">
+        <div className="relative flex items-end bg-base-100 rounded-xl focus-within:border-gray-500 transition-colors shadow-lg">
           <textarea
             ref={textareaRef}
             value={message}
@@ -230,7 +230,7 @@ const TranscriptPanel = ({
             placeholder="Type a message or speak..."
             rows={1}
             className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 pr-12 resize-none focus:outline-none max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
-            style={{ minHeight: "44px" }}
+            style={{ minHeight: "54px" }}
           />
           <button
             onClick={handleSend}

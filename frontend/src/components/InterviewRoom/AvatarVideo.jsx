@@ -32,7 +32,7 @@ export default function AvatarVideo({ videoTrack }) {
         </div>
       )}
       {!videoTrack && (
-        <div className="absolute inset-0 flex justify-center items-center text-white">
+        <div className="absolute inset-0 flex justify-center items-center text-xl text-gray-500">
           Waiting for avatar...
         </div>
       )}
