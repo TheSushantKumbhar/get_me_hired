@@ -201,7 +201,7 @@ def parse_resume():
         if not parsed_resume:
             return jsonify({"error": "LLM parsing failed"}), 500
 
-        return parsed_resume, 200
+        return parsed_resume, 200, {"Content-Type:": "text/markdown; charset=uft-8"}
     except Exception as e:
         print(f"internal server error: {e}")
         return jsonify({"error": "Internal server error"}), 500
