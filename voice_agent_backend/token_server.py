@@ -26,12 +26,14 @@ def create_room_with_metadata():
         data = request.json
         participant_name = data.get("participant", "user")
         job_data = data.get("jobData", {})
+        resume_data = data.get("resumeData", "")
 
         # Create unique room name
         room_name = f"interview-{participant_name}-{int(time.time())}"
 
         print(f"Creating token for room: {room_name}")
         print(f"Job data: {job_data}")
+        print(f"Resume: {resume_data}")
 
         # Create access token with metadata
         token = api.AccessToken(
@@ -39,9 +41,14 @@ def create_room_with_metadata():
             api_secret=os.getenv("LIVEKIT_API_SECRET"),
         )
 
+        metadata = {
+            "jobData": job_data,
+            "resumeData": resume_data,
+        }
+
         # Add job data as participant metadata
         token.with_identity(participant_name).with_name(participant_name).with_metadata(
-            json.dumps(job_data)
+            json.dumps(metadata)
         ).with_grants(
             api.VideoGrants(
                 room_join=True,

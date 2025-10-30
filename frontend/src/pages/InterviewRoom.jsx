@@ -8,6 +8,7 @@ import AvatarVideo from "../components/InterviewRoom/AvatarVideo";
 import ConnectionLoadingModal from "../components/InterviewRoom/ConnectionLoadingModal";
 import toast, { Toaster } from "react-hot-toast";
 import { io } from "socket.io-client";
+import { useAuth } from "../contexts/AuthContext";
 
 const InterviewRoom = () => {
   const location = useLocation();
@@ -39,6 +40,8 @@ const InterviewRoom = () => {
   );
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState("");
+
+  const { user } = useAuth();
 
   useEffect(() => {
     if (job?.title) {
@@ -260,7 +263,8 @@ const InterviewRoom = () => {
         languages: ["JavaScript"],
       };
 
-      const participantName = "User-" + Math.random().toString(36).substr(2, 9);
+      const participantName =
+        user?.username || "User-" + Math.random().toString(36).substr(2, 9);
 
       const response = await fetch("http://localhost:5000/create-room", {
         method: "POST",
@@ -268,6 +272,7 @@ const InterviewRoom = () => {
         body: JSON.stringify({
           participant: participantName,
           jobData: jobData,
+          resumeData: user?.parsedResume || "",
         }),
       });
 
@@ -318,7 +323,7 @@ const InterviewRoom = () => {
                   `Setting video track from existing participant: ${participant.identity}`,
                 );
                 setVideoTrack(publication.videoTrack);
-                
+
                 // If avatar already present, close modal after short delay
                 if (!avatarJoinedRef.current) {
                   avatarJoinedRef.current = true;
@@ -341,7 +346,8 @@ const InterviewRoom = () => {
                 reader.info.attributes["lk.transcribed_track_id"] != null;
               const isFinal =
                 reader.info.attributes["lk.transcription_final"] === "true";
-              const segmentId = reader.info.attributes["lk.segment_id"] ||
+              const segmentId =
+                reader.info.attributes["lk.segment_id"] ||
                 `segment-${Date.now()}-${Math.random()}`;
 
               console.log("=== Transcription Received ===");
@@ -368,7 +374,9 @@ const InterviewRoom = () => {
                 const speaker = isAgent ? "Agent" : "You";
 
                 console.log(`Detected speaker: ${speaker}`);
-                console.log(`   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`);
+                console.log(
+                  `   Identity matched: ${isAgent ? "YES (Agent)" : "NO (User)"}`,
+                );
 
                 if (speaker === "Agent") {
                   // Set agent speaking immediately when interim or final transcript received
@@ -390,10 +398,14 @@ const InterviewRoom = () => {
                 const shouldBeFinal = isFinal || (isAgent && !isTranscription);
 
                 if (shouldBeFinal) {
-                  console.log(`Adding FINAL transcript: ${speaker} - ${message}`);
+                  console.log(
+                    `Adding FINAL transcript: ${speaker} - ${message}`,
+                  );
                   addFinalTranscript(speaker, message, segmentId);
                 } else {
-                  console.log(`Adding INTERIM transcript: ${speaker} - ${message}`);
+                  console.log(
+                    `Adding INTERIM transcript: ${speaker} - ${message}`,
+                  );
                   addInterimTranscript(speaker, message, segmentId);
                 }
               } else {
@@ -446,11 +458,10 @@ const InterviewRoom = () => {
               // } else {
               //   console.log("Transcription skipped - empty message");
               // }
-        
             } catch (error) {
               console.error("Error processing transcription:", error);
             }
-          }
+          },
         );
       });
 
@@ -547,12 +558,12 @@ const InterviewRoom = () => {
                   // More sensitive threshold for real-time detection
                   if (average > 5) {
                     setIsAgentSpeaking(true);
-                    
+
                     // Clear existing timeout
                     if (agentSpeechDetectionTimeoutRef.current) {
                       clearTimeout(agentSpeechDetectionTimeoutRef.current);
                     }
-                    
+
                     // Set timeout to turn off after silence
                     agentSpeechDetectionTimeoutRef.current = setTimeout(() => {
                       setIsAgentSpeaking(false);
@@ -595,7 +606,9 @@ const InterviewRoom = () => {
                 }, 1000);
               }
             } else {
-              console.log(`Setting USER video track from: ${participant.identity}`);
+              console.log(
+                `Setting USER video track from: ${participant.identity}`,
+              );
               if (videoRef.current) {
                 track.attach(videoRef.current);
                 setHasVideo(true);
@@ -816,7 +829,7 @@ const InterviewRoom = () => {
 
     if (participantViolationCount > 1) {
       alert(
-        `VIOLATION DETECTED!\n\nMultiple participants detected on screen (${participantViolationCount}).\n\nOnly 1 participant is allowed during the interview.\n\nYou will be disconnected in 5 seconds.`
+        `VIOLATION DETECTED!\n\nMultiple participants detected on screen (${participantViolationCount}).\n\nOnly 1 participant is allowed during the interview.\n\nYou will be disconnected in 5 seconds.`,
       );
 
       violationTimeoutRef.current = setTimeout(() => {
@@ -920,3 +933,4 @@ const InterviewRoom = () => {
 };
 
 export default InterviewRoom;
+

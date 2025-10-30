@@ -33,9 +33,12 @@ async def entrypoint(ctx: JobContext):
     participant = await ctx.wait_for_participant()
 
     job_metadata = {}
+    resume = ""
     if participant.metadata:
         try:
-            job_metadata = json.loads(participant.metadata)
+            metadata = json.loads(participant.metadata)
+            job_metadata = metadata.get("jobData", {})
+            resume = metadata.get("resumeData", "")
             logger.info(f"Loaded job metadata from participant: {job_metadata}")
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse participant metadata: {e}")
@@ -47,11 +50,15 @@ async def entrypoint(ctx: JobContext):
 
     logger.info(f"Interview for: {company_name} - {job_title}")
     logger.info(f"Required languages: {', '.join(languages)}")
+    logger.info(f"participant resume details: {resume[:100]}....")
 
     # Create Agent
     agent = Agent(
         instructions=f"""
         You are an AI interview assistant conducting an interview for {company_name}.
+        
+        Below is the candidate's Resume (in Markdown format):
+        {resume}
         
         Position: {job_title}
         Job Description: {job_description}
@@ -126,7 +133,7 @@ async def entrypoint(ctx: JobContext):
     avatar = bey.AvatarSession(
         api_key=bey_api_key,
         avatar_id=bey_avatar_id,
-        avatar_participant_name="AI-Interviewer-Avatar"  # Optional: Custom name
+        avatar_participant_name="AI-Interviewer-Avatar",  # Optional: Custom name
     )
 
     # Start the avatar first (it joins as a separate participant)
@@ -150,9 +157,9 @@ async def entrypoint(ctx: JobContext):
 
     # Initial greeting
     await session.say(
-        f"Hello! Welcome to your interview for the {job_title} position at {company_name}. "
-        f"I'm excited to learn more about your experience, especially with {', '.join(languages[:2])}. "
-        f"Please take a moment to introduce yourself and tell me about your background.",
+        f"Welcome to your interview for the {job_title} role at {company_name}. "
+        f"I’ve gone through your resume and noticed your background in {', '.join(languages[:2])}. "
+        f"Let’s start with a quick introduction could you tell me a bit about yourself and your professional journey?",
         allow_interruptions=True,
     )
 

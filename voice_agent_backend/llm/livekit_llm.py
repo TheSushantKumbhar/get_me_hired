@@ -5,11 +5,13 @@ from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from langgraph.store.base import Result
 from pinecone import Pinecone
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from llm.prompts import interview_prompt
+from parsing import resume
 
 load_dotenv()
 
@@ -23,6 +25,7 @@ vector_store = PineconeVectorStore(embedding=embeddings, index=index)
 class State(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     context: List[Document]
+    resume: str
     languages: List[str]
     company_name: str
     job_title: str
@@ -59,6 +62,7 @@ def generate(
     company_name: str | None,
     job_title: str | None,
     job_description: str | None,
+    resume: str | None,
 ):
     """Generate interview response based on context and conversation history"""
     messages = state.get("messages", [])
@@ -82,6 +86,9 @@ def generate(
     # Create the system message with context
     job_info = f"""
 You are **Candice**, an intelligent and professional AI interviewer representing **{company_name}**.
+
+Below is the candidate's Resume (in Markdown format):
+{resume}
 
 You are conducting an interview for the position of **{job_title}**.
 
@@ -120,6 +127,7 @@ def create_workflow(
     company_name: str | None = None,
     job_title: str | None = None,
     job_description: str | None = None,
+    resume: str | None = None,
 ):
     """Create the LangGraph workflow for the interview agent"""
 
@@ -137,12 +145,15 @@ def create_workflow(
             state["job_title"] = job_title
         if job_description:
             state["job_description"] = job_description
+        if resume:
+            state["resume"] = resume
         return generate(
             state=state,
             languages=languages,
             company_name=company_name,
             job_title=job_title,
             job_description=job_description,
+            resume=resume,
         )
 
     graph_builder = StateGraph(State)
@@ -171,6 +182,7 @@ if __name__ == "__main__":
         "company_name": "test company",
         "job_title": "test_job_title",
         "job_description": "test_job_description",
+        "resume": "test_resume",
     }
 
     while True:
