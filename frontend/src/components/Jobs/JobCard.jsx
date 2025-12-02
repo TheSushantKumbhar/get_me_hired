@@ -21,7 +21,7 @@ function JobCard({ job }) {
         <div className="mb-2">
           <span className="badge badge-primary badge-sm mb-2">{job.type || "Full-time"}</span>
           <h2 className="card-title text-2xl font-bold font-space-mono text-primary mb-1">
-            {job.companyName}
+            {job.company_name}
           </h2>
           <h3 className="text-lg font-semibold text-base-content/80 mb-3">{job.title}</h3>
         </div>
@@ -50,12 +50,12 @@ function JobCard({ job }) {
           )}
         </div>
 
-        
+
         <div className="card-actions justify-end mt-auto">
           <button
             className="btn btn-primary w-full hover:btn-secondary transition-colors duration-300"
             onClick={() =>
-              document.getElementById(`modal_${job.companyName}`).showModal()
+              document.getElementById(`modal_${job.company_name}`).showModal()
             }
           >
             <span>Start Interview</span>

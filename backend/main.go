@@ -1,53 +1,81 @@
 package main
 
 import (
+	"database/sql"
 	"log"
+	"net/http"
 	"os"
 
-	"github.com/TheSushantKumbhar/get_me_hired/backend/controllers"
-	"github.com/TheSushantKumbhar/get_me_hired/backend/models"
-	"github.com/TheSushantKumbhar/get_me_hired/backend/repository"
-	"github.com/TheSushantKumbhar/get_me_hired/backend/routes"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/TheSushantKumbhar/get_me_hired/backend/api"
+	"github.com/TheSushantKumbhar/get_me_hired/backend/handlers"
+	"github.com/TheSushantKumbhar/get_me_hired/backend/internal/database"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalln("failed to load dotenv", err)
+		log.Fatalln("error loading env: ", err)
+	}
+	portString := os.Getenv("PORT")
+	if portString == "" {
+		log.Fatalln("Port not found in env!")
+	}
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatalln("db url not found in env!")
 	}
 
-	app := fiber.New()
+	conn, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalln("error connecting to database, ", err)
+	}
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:5173,http://localhost:5174",
-		AllowMethods:     "*",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+	db := database.New(conn)
+	apiCfg := api.APIConfig{
+		DB: db,
+	}
+
+	// seeds.SeedJobs(&apiCfg)
+	// log.Println("inserted jobs in db!")
+
+	h := handlers.Handler{
+		APIConfig: &apiCfg,
+	}
+
+	m := Middleware{
+		APIConfig: &apiCfg,
+	}
+
+	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
+		MaxAge:           300,
 	}))
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello World!")
-	})
+	v1Router := chi.NewRouter()
 
-	client := models.ConnectDatabase()
-	// models.InitCloudinary()
-	dbName := os.Getenv("MONGODB_NAME")
+	setupRoutes(v1Router, &h, &m)
 
-	jobRepo := repository.NewJobRepository(client, dbName)
-	jobController := controllers.NewJobController(jobRepo)
+	router.Mount("/v1", v1Router)
 
-	userRepo := repository.NewUserRepository(client, dbName)
-	userController := controllers.NewUserController(userRepo)
+	srv := &http.Server{
+		Handler: router,
+		Addr:    ":" + portString,
+	}
 
-	routes.SetupJobRoutes(app, jobController)
-	routes.SetupAuthRoutes(app, userController)
-	routes.SetupUserRoutes(app, userController)
-
-	err = app.Listen(":3000")
+	log.Printf("Server Starting on PORT: %v\n", portString)
+	err = srv.ListenAndServe()
 	if err != nil {
-		log.Fatalln("could not start the server!\n", err)
+		log.Fatal(err)
 	}
 }

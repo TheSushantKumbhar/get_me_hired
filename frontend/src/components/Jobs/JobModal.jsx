@@ -23,10 +23,10 @@ function JobModal({ job }) {
     }
 
     // Navigate to interview page
-    navigate(`/interview/${job._id}`, {
+    navigate(`/interview/${job.id}`, {
       state: {
         jobData: {
-          companyName: job.companyName,
+          companyName: job.company_name,
           title: job.title,
           description: job.description,
           languages: job.languages,
@@ -36,7 +36,7 @@ function JobModal({ job }) {
   };
 
   return (
-    <dialog id={`modal_${job.companyName}`} className="modal">
+    <dialog id={`modal_${job.company_name}`} className="modal">
       <div className="modal-box w-[60vw]">
         <form method="dialog">
           <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
@@ -47,7 +47,7 @@ function JobModal({ job }) {
         <div className="divider"></div>
         <div className="m-2 font-work-sans">
           <h2 className="text-xl">
-            Company Name: <span className="font-bold">{job.companyName}</span>
+            Company Name: <span className="font-bold">{job.company_name}</span>
           </h2>
           <h2 className="text-xl">
             Job Title: <span className="font-bold">{job.title}</span>

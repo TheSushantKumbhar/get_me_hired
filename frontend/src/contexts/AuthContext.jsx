@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { BACKEND_BASE_URL } from "../constants";
 
 const AuthContext = createContext();
 
@@ -7,11 +8,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
+  const BASE_URL = BACKEND_BASE_URL
+
   async function fetchUser() {
     setAuthError("");
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/user", {
+      const response = await fetch(`${BASE_URL}/user`, {
         method: "GET",
         credentials: "include",
       });
@@ -47,7 +50,7 @@ export function AuthProvider({ children }) {
       formData.append("password", password);
       formData.append("resume", resume);
 
-      const res = await fetch("http://localhost:3000/register", {
+      const res = await fetch(`${BASE_URL}/users`, {
         method: "POST",
         body: formData,
       });
@@ -73,7 +76,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setAuthError("");
     try {
-      const res = await fetch("http://localhost:3000/login", {
+      const res = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -99,7 +102,7 @@ export function AuthProvider({ children }) {
     setAuthError("");
     setLoading(true);
     try {
-      await fetch("http://localhost:3000/logout", {
+      await fetch(`${BASE_URL}/logout`, {
         method: "GET",
         credentials: "include",
       });

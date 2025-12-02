@@ -76,7 +76,7 @@ function ProfilePage() {
                 <div className="p-4 border border-base-300 rounded-lg bg-base-200">
                   <div className="prose prose-headings:font-space-mono prose-stone prose-lead:font-work-sans h-80 overflow-y-auto">
                     <ReactMarkdown>
-                      {user?.parsedResume || "No resume available."}
+                      {data?.parsed_resume || "No resume available."}
                     </ReactMarkdown>
                   </div>
                 </div>
