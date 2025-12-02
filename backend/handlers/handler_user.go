@@ -68,7 +68,11 @@ func (h Handler) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
 		RespondWithErr(w, http.StatusInternalServerError, "something went wrong copying the resume!")
 	}
 
-	resumeURL := fmt.Sprintf("/home/adityasutar/projects/gmh_backend_v2/store/user/resume/resume_%s", username)
+	storePath := os.Getenv("LOCAL_STORE_PATH")
+	if storePath == "" {
+		RespondWithErr(w, http.StatusInternalServerError, "store path is empty")
+	}
+	resumeURL := fmt.Sprintf("%s/user/resume/resume_%s", storePath, username)
 	parsedResume, err := parseResume(resumeURL)
 	if err != nil {
 		log.Println("error parsing resume: ", err)

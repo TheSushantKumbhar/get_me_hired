@@ -14,7 +14,7 @@ import (
 )
 
 func SeedJobs(apiCfg *api.APIConfig) {
-	data, err := os.Open("/home/adityasutar/projects/gmh_backend_v2/seeds/jobs.json")
+	data, err := os.Open("/home/adityasutar/projects/get_me_hired/backend/seeds/jobs.json")
 	if err != nil {
 		log.Fatalln("error opening jobs.json", err)
 		return
@@ -40,7 +40,7 @@ func SeedJobs(apiCfg *api.APIConfig) {
 		return
 	}
 
-	userID, err := uuid.Parse("66f0cc29-2790-4b17-b6d4-e99bc1ba38aa")
+	userID, err := uuid.Parse("43e3a77b-96ab-4c14-a3f8-6e79aa88f5c2")
 	if err != nil {
 		log.Fatalln("error getting user id")
 		return

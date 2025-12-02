@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/TheSushantKumbhar/get_me_hired/backend/api"
@@ -31,18 +32,21 @@ func main() {
 		log.Fatalln("db url not found in env!")
 	}
 
-	conn, err := sql.Open("postgres", dbURL)
+	conn, err := url.Parse(dbURL)
 	if err != nil {
-		log.Fatalln("error connecting to database, ", err)
+		log.Fatalln("error parsing the url")
+	}
+	conn.RawQuery = "sslmode=verify-ca;sslrootcert=ca.pem"
+
+	db, err := sql.Open("postgres", conn.String())
+	if err != nil {
+		log.Fatalln("error opening db!")
 	}
 
-	db := database.New(conn)
+	DB := database.New(db)
 	apiCfg := api.APIConfig{
-		DB: db,
+		DB: DB,
 	}
-
-	// seeds.SeedJobs(&apiCfg)
-	// log.Println("inserted jobs in db!")
 
 	h := handlers.Handler{
 		APIConfig: &apiCfg,
